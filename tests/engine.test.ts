@@ -17,6 +17,7 @@ for (let index = 0; index < buffer.length; index += 1) {
 
 const rangeRequests: string[] = [];
 const ifRangeRequests: string[] = [];
+const forwardedHeaders: Array<Record<string, string>> = [];
 
 let fixture: ReturnType<typeof Bun.serve>;
 let tempDir: string;
@@ -45,6 +46,7 @@ beforeAll(async () => {
         return new Response(null, { headers });
       }
 
+      forwardedHeaders.push(Object.fromEntries(req.headers.entries()));
       const range = req.headers.get("range");
       if (range) {
         rangeRequests.push(range);
@@ -154,11 +156,19 @@ describe("download engine", () => {
     const start = 1_200_000;
     const end = 1_700_000;
 
-    const job = engine.addDownload(probe, settings.downloadDir, {
-      start,
-      end,
-      ifRange: ETAG,
-    });
+    const job = engine.addDownload(
+      probe,
+      settings.downloadDir,
+      {
+        start,
+        end,
+        ifRange: ETAG,
+      },
+      [
+        { name: "Referer", value: "https://example.test/watch" },
+        { name: "X-Client", value: "downlink-test" },
+      ],
+    );
     await waitFor(() => engine.getPublicJob(job.id)?.status === "completed");
 
     const completed = engine.getPublicJob(job.id);
@@ -169,8 +179,19 @@ describe("download engine", () => {
     expect(completed?.httpStatus).toBe(206);
     expect(completed?.downloadedBytes).toBe(end - start + 1);
     expect(completed?.fileName).toContain(`[${start}-${end}]`);
+    expect(completed?.headers).toContainEqual({
+      name: "Referer",
+      value: "https://example.test/watch",
+    });
     expect(rangeRequests).toContain(`bytes=${start}-${end}`);
     expect(ifRangeRequests).toContain(ETAG);
+    expect(
+      forwardedHeaders.some(
+        (headers) =>
+          headers["referer"] === "https://example.test/watch" &&
+          headers["x-client"] === "downlink-test",
+      ),
+    ).toBe(true);
 
     const saved = new Uint8Array(await readFile(completed?.filePath ?? ""));
     const expected = buffer.slice(start, end + 1);

@@ -10,15 +10,20 @@ import {
 } from "node:fs/promises";
 import { basename, dirname, join, parse } from "node:path";
 import { Store, partPathFor } from "./db";
+import {
+  buildRequestHeaders,
+  parseStoredHeaders,
+  storedHeadersJson,
+} from "./headers";
 import type {
   AppSettings,
   DownloadRow,
   JobStatus,
   PartialRangeOptions,
   PublicJob,
+  RequestHeader,
 } from "./types";
 import {
-  DOWNLOAD_HEADERS,
   headerNumber,
   isPartialRange,
   parseContentRange,
@@ -285,6 +290,7 @@ export class DownloadEngine {
     },
     downloadDir: string,
     range?: PartialRangeOptions,
+    headers: RequestHeader[] = [],
   ): PublicJob {
     mkdirSync(downloadDir, { recursive: true });
     const rangeStart = Math.max(0, Math.round(range?.start ?? 0));
@@ -333,6 +339,7 @@ export class DownloadEngine {
       rangeEnd: partial ? rangeEnd : null,
       rangeIf: partial ? (range?.ifRange ?? null) : null,
       remoteTotal,
+      headersJson: storedHeadersJson(headers),
       now,
     });
     this.reserved.add(filePath);
@@ -603,17 +610,20 @@ export class DownloadEngine {
     signal: AbortSignal,
     restart = false,
   ): Promise<{ response: Response; start: number }> {
-    const headers: Record<string, string> = { ...DOWNLOAD_HEADERS };
+    const headers = buildRequestHeaders(
+      parseStoredHeaders(job.headers_json),
+    );
     const partial = isPartialRange(job.range_start, job.range_end);
     const requestStart = job.range_start + downloaded;
     const needsRange = partial || downloaded > 0;
 
     if (needsRange) {
-      headers.Range = `bytes=${requestStart}-${
-        job.range_end !== null ? job.range_end : ""
-      }`;
+      headers.set(
+        "Range",
+        `bytes=${requestStart}-${job.range_end !== null ? job.range_end : ""}`,
+      );
       const validator = job.range_if || job.etag || job.last_modified;
-      if (validator) headers["If-Range"] = validator;
+      if (validator) headers.set("If-Range", validator);
     }
 
     const response = await fetch(job.final_url || job.url, {

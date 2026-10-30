@@ -1,7 +1,7 @@
-import type { ProbeResult } from "./types";
+import type { ProbeResult, RequestHeader } from "./types";
+import { buildRequestHeaders } from "./headers";
 import {
   chooseFileName,
-  DOWNLOAD_HEADERS,
   headerNumber,
   kindFor,
   normalizeContentType,
@@ -97,9 +97,10 @@ async function probeWithMethod(
   url: URL,
   method: "HEAD" | "GET",
   signal: AbortSignal,
+  customHeaders: RequestHeader[],
 ): Promise<ProbeResult> {
-  const headers: Record<string, string> = { ...DOWNLOAD_HEADERS };
-  if (method === "GET") headers.Range = "bytes=0-0";
+  const headers = buildRequestHeaders(customHeaders);
+  if (method === "GET") headers.set("Range", "bytes=0-0");
 
   const response = await fetch(url, {
     method,
@@ -163,7 +164,10 @@ async function probeWithMethod(
  * servers that do not implement HEAD (or reject it). This discovers size, type,
  * range support and validators without downloading the payload.
  */
-export async function probeUrl(rawUrl: string): Promise<ProbeResult> {
+export async function probeUrl(
+  rawUrl: string,
+  customHeaders: RequestHeader[] = [],
+): Promise<ProbeResult> {
   const url = normalizeDownloadUrl(rawUrl);
   let headError: unknown = null;
 
@@ -172,6 +176,7 @@ export async function probeUrl(rawUrl: string): Promise<ProbeResult> {
       url,
       "HEAD",
       AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      customHeaders,
     );
     if (head.contentType && (head.totalBytes > 0 || head.supportsRanges)) {
       return head;
@@ -187,6 +192,7 @@ export async function probeUrl(rawUrl: string): Promise<ProbeResult> {
       url,
       "GET",
       AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      customHeaders,
     );
   } catch (error) {
     if (error instanceof ProbeError) throw error;

@@ -16,6 +16,10 @@ The detail view includes a range-enabled player, resumable progress, metadata an
 - **Resumable downloads** with HTTP `Range`, `If-Range`, `ETag` and `Last-Modified`
   validation. Pausing, restarting the server, or a dropped connection keeps the partial
   file and continues from the correct byte.
+- **cURL import** — paste a “Copy as cURL” command and Downlink fills the URL, Range,
+  If-Range and request headers (referer, user-agent, authorization, cookies, etc.)
+  automatically. The imported headers are used for inspection, remote preview and every
+  subsequent download/resume request.
 - **Explicit 206 range downloads** — enter a start/end byte and an optional `If-Range`
   validator. Downlink sends `Range`, requires a `206 Partial Content` response, and saves
   only that segment with a descriptive filename.
@@ -80,17 +84,37 @@ PORT=8080 DOWNLOAD_DIR="$HOME/Downloads/Video" bun start
 
 1. Paste a **direct** HTTP/HTTPS file URL, for example a `.mp4`, `.webm`, `.mp3`,
    `.jpg`, `.zip` or PDF.
-2. Press **Add download**, or **Preview** to inspect and stream the remote file first.
-3. For a partial transfer, open **206 range**, enter the starting byte, an optional end
+2. To preserve a browser request, click **Import cURL** (or paste a cURL command into the
+   URL field). URL, Range, If-Range and headers are filled in automatically.
+3. Press **Add download**, or **Preview** to inspect and stream the remote file first.
+4. For a partial transfer, open **206 range**, enter the starting byte, an optional end
    byte and an optional `If-Range` validator. The download expects `206 Partial Content`
    and saves only the requested segment.
-4. While downloading you can pause, resume, preview the partial file, or cancel.
-5. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
+5. While downloading you can pause, resume, preview the partial file, or cancel.
+6. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
 
 The **Preview** button and the detail player use `/api/downloads/:id/preview`, which
 supports `Range` requests against the `.part` file while a download is in progress. This
 works best for MP4 files with metadata at the front; some codecs/containers are not
 playable by every browser.
+
+### Importing a browser request
+
+Paste a request copied from DevTools (Network → right-click → Copy → Copy as cURL) into
+**Import cURL**, or paste it directly into the URL field. For example:
+
+```bash
+curl --url 'https://example.com/video.mp4' \
+  -H 'referer: https://example.com/watch' \
+  -H 'range: bytes=432144384-823121180' \
+  -H 'if-range: "6aa88fff-310fd51d"' \
+  -H 'user-agent: Mozilla/5.0'
+```
+
+The URL, byte range, `If-Range` validator and headers are filled in automatically.
+`Range` and `If-Range` become the 206 controls; all other safe headers are sent on
+inspection, preview and download requests, and are stored with the job so pause/resume
+continues to work.
 
 ## API overview
 
@@ -98,8 +122,8 @@ playable by every browser.
 | ------ | ---------------------------------- | ------------------------------------ |
 | GET    | `/api/health`                      | Engine health and save folder.       |
 | GET    | `/api/downloads`                   | Snapshot: jobs, summary, settings.   |
-| POST   | `/api/downloads`                   | Add `{ url }` or `{ urls: [] }`; optional `range`. |
-| POST   | `/api/inspect`                     | Probe a URL and create a preview.    |
+| POST   | `/api/downloads`                   | Add `{ url }` or `{ urls: [] }`; optional `range`, `headers`. |
+| POST   | `/api/inspect`                     | Probe a URL and create a preview; accepts `headers`. |
 | GET    | `/api/events`                      | SSE stream of job/settings changes.  |
 | GET    | `/api/downloads/:id`               | Single job.                          |
 | POST   | `/api/downloads/:id/pause`         | Pause (or pause queued job).         |
@@ -147,6 +171,7 @@ bun run dev        # server + client hot reload
 bun run typecheck  # tsc --noEmit
 bun test           # unit/integration tests
 bun run test:e2e   # isolated Chrome CDP pause/resume test
+bun run test:curl  # isolated Chrome CDP cURL import + private preview test
 bun run test:browser # smoke + screenshots against a running app
 ```
 
@@ -161,6 +186,8 @@ src/
   server.ts      Bun.serve routes, SSE, file responses, settings
   engine.ts      download scheduler, resumable writer, speed meter, limiter
   probe.ts       HEAD / one-byte Range probing and metadata
+  curl.ts        pasted-cURL parser (URL, headers, Range, If-Range)
+  headers.ts     request-header normalization and managed-header rules
   db.ts          bun:sqlite schema and persistence
   utils.ts       filename, MIME, range and URL helpers
   index.html     Bun-native fullstack entry
@@ -173,6 +200,7 @@ tests/
 scripts/browser/
   cdp.ts         shared headless-Chrome / DevTools Protocol helpers
   pause.ts       isolated pause/resume E2E with Range + If-Range assertions
+  curl.ts        isolated cURL import, private preview and private download test
   smoke.ts       desktop/mobile/theme screenshots and console-error check
 downloads/       default save folder
 data/            SQLite database (created at runtime)
@@ -184,7 +212,10 @@ artifacts/       generated browser screenshots (ignored)
 - This is a **direct-file** downloader. HLS/DASH manifests (`.m3u8`, `.mpd`) are detected
   and rejected rather than incorrectly saved as playlists.
 - Sites that require cookies, a logged-in session, or a specific `Referer` may return
-  401/403. Downlink does not bypass authentication or anti-bot protections.
+  401/403. Use **Import cURL** to carry those request headers over; Downlink does not
+  bypass authentication or anti-bot protections.
+- Imported request headers (including cookies or authorization tokens) are stored in the
+  local SQLite database so paused downloads can resume. Do not share the `data/` directory.
 - The signed remote preview proxy is intentionally limited to URLs inspected by the
   engine. The server binds to localhost by default; do not expose it to an untrusted
   network.

@@ -76,6 +76,53 @@ try {
     true,
   );
 
+  await browser.client.click("#curlToggle");
+  const curlCommand = [
+    "curl --url 'https://example.com/video.mp4?x=1' \\",
+    "  -H 'referer: https://example.com/' \\",
+    "  -H 'range: bytes=1000-' \\",
+    '  -H \'if-range: "etag-test"\' \\',
+    "  -H 'user-agent: Smoke Test'",
+  ].join("\n");
+  await browser.client.evaluate(`
+    document.querySelector('#curlInput').value = ${JSON.stringify(curlCommand)};
+    document.querySelector('#curlImportBtn').click();
+  `);
+  await Bun.sleep(250);
+  assert.equal(
+    await browser.client.evaluate<boolean>("document.querySelector('#curlDialog').open"),
+    false,
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#urlInput').value"),
+    "https://example.com/video.mp4?x=1",
+  );
+  assert.equal(
+    await browser.client.evaluate<boolean>("document.querySelector('#rangePanel').hidden"),
+    false,
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#rangeStartInput').value"),
+    "1000",
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#headersCount').textContent"),
+    "2",
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#rangeIfInput').value"),
+    '"etag-test"',
+  );
+  await browser.client.click("#clearHeadersBtn");
+  assert.equal(
+    await browser.client.evaluate<boolean>("document.querySelector('#headersPanel').hidden"),
+    true,
+  );
+  await browser.client.click("#rangeToggle");
+  await browser.client.evaluate(`
+    document.querySelector('#urlInput').value = '';
+  `);
+
   await browser.client.click("#themeBtn");
   await Bun.sleep(400);
   assert.equal(

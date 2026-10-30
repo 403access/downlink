@@ -103,6 +103,10 @@
       <symbol id="i-code" viewBox="0 0 24 24">
         <path d="m8 5-5 7 5 7M16 5l5 7-5 7M14 4l-4 16" />
       </symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="m7 9 4 3-4 3M13 15h4" />
+      </symbol>
     </svg>
 
     <div class="app-shell">
@@ -259,12 +263,27 @@
               </div>
               <code class="range-preview" id="rangePreview">bytes=0-</code>
             </div>
+            <div class="request-headers" id="headersPanel" hidden>
+              <div class="request-headers-head">
+                <span class="request-headers-title">
+                  <svg class="icon"><use href="#i-terminal" /></svg>
+                  Imported request headers
+                  <span class="headers-count" id="headersCount">0</span>
+                </span>
+                <button class="text-button" id="clearHeadersBtn" type="button">Clear</button>
+              </div>
+              <div class="header-chips" id="headerChips"></div>
+            </div>
             <div class="composer-bottom">
               <div class="composer-hint">
                 <span class="live-dot"></span>
                 Direct HTTP/HTTPS links · resumable via Range · live preview
               </div>
               <div class="composer-toggles">
+                <button class="text-button" id="curlToggle" type="button">
+                  <svg class="icon"><use href="#i-terminal" /></svg>
+                  <span>Import cURL</span>
+                </button>
                 <button class="text-button" id="rangeToggle" type="button">
                   <svg class="icon"><use href="#i-code" /></svg>
                   <span>206 range</span>
@@ -531,6 +550,51 @@
           <div class="footer-buttons">
             <button class="button subtle" type="button" data-close="settingsDialog">Cancel</button>
             <button class="button primary" id="settingsSave" type="submit">Save changes</button>
+          </div>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="modal curl-modal" id="curlDialog">
+      <form class="modal-card curl-card" id="curlForm">
+        <header class="modal-header">
+          <div class="modal-heading">
+            <span class="eyebrow">Clipboard bridge</span>
+            <h2>Import cURL</h2>
+            <p>Fill the URL, Range, If-Range and request headers automatically.</p>
+          </div>
+          <button class="icon-button close-button" data-close="curlDialog" type="button" aria-label="Close">
+            <svg class="icon"><use href="#i-x" /></svg>
+          </button>
+        </header>
+        <div class="curl-body">
+          <label class="setting-field">
+            <span class="setting-label">Paste a cURL command</span>
+            <span class="setting-hint">
+              Only GET/HEAD downloads are supported. Headers, Range and If-Range are carried
+              over; request bodies and cookie files are ignored.
+            </span>
+            <textarea
+              id="curlInput"
+              class="curl-input"
+              rows="9"
+              spellcheck="false"
+              placeholder="curl --url 'https://example.com/file.mp4' \
+  -H 'referer: https://example.com/' \
+  -H 'range: bytes=1000000-' \
+  -H 'if-range: &quot;etag-value&quot;'"
+            ></textarea>
+          </label>
+          <div class="form-error" id="curlError" role="alert" hidden></div>
+        </div>
+        <footer class="modal-footer">
+          <span class="fine-print">Copy a request from DevTools → Network → “Copy as cURL”.</span>
+          <div class="footer-buttons">
+            <button class="button subtle" type="button" data-close="curlDialog">Cancel</button>
+            <button class="button primary" id="curlImportBtn" type="submit">
+              <svg class="icon"><use href="#i-terminal" /></svg>
+              Import request
+            </button>
           </div>
         </footer>
       </form>

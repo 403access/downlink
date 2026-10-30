@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS downloads (
   range_end INTEGER,
   range_if TEXT,
   remote_total INTEGER NOT NULL DEFAULT 0,
-  http_status INTEGER
+  http_status INTEGER,
+  headers_json TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
@@ -63,6 +64,7 @@ const PATCHABLE = new Set<keyof DownloadRow>([
   "range_if",
   "remote_total",
   "http_status",
+  "headers_json",
 ]);
 
 export interface NewDownload {
@@ -80,6 +82,7 @@ export interface NewDownload {
   rangeEnd: number | null;
   rangeIf: string | null;
   remoteTotal: number;
+  headersJson: string;
   now: number;
 }
 
@@ -110,6 +113,7 @@ export class Store {
       ["range_if", "TEXT"],
       ["remote_total", "INTEGER NOT NULL DEFAULT 0"],
       ["http_status", "INTEGER"],
+      ["headers_json", "TEXT NOT NULL DEFAULT '[]'"],
     ];
     for (const [name, definition] of additions) {
       if (!existing.has(name)) {
@@ -153,8 +157,8 @@ export class Store {
           id, url, final_url, file_name, file_path, content_type,
           total_bytes, downloaded_bytes, supports_ranges, etag, last_modified, status,
           created_at, updated_at, attempts, speed_bps,
-          range_start, range_end, range_if, remote_total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'queued', ?, ?, 0, 0, ?, ?, ?, ?)`,
+          range_start, range_end, range_if, remote_total, headers_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'queued', ?, ?, 0, 0, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.id,
@@ -173,6 +177,7 @@ export class Store {
         input.rangeEnd,
         input.rangeIf,
         input.remoteTotal,
+        input.headersJson,
       );
     const row = this.getDownload(input.id);
     if (!row) throw new Error("Failed to create download record.");

@@ -1,5 +1,6 @@
 import { basename, extname, parse, resolve } from "node:path";
 import { homedir } from "node:os";
+import { parseStoredHeaders } from "./headers";
 import type {
   DownloadRow,
   FileKind,
@@ -458,6 +459,7 @@ export function toPublicJob(
     rangeIf: row.range_if,
     remoteTotal,
     httpStatus: row.http_status,
+    headers: parseStoredHeaders(row.headers_json),
   };
 }
 
@@ -485,14 +487,6 @@ export function probeToAddInput(
     lastModified: probe.lastModified,
   };
 }
-
-export const DOWNLOAD_HEADERS: Record<string, string> = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  Accept: "*/*",
-  "Accept-Language": "en-US,en;q=0.9",
-  "Accept-Encoding": "identity",
-};
 
 export function contentDisposition(
   fileName: string,

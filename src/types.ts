@@ -14,6 +14,11 @@ export type FileKind =
   | "document"
   | "other";
 
+export interface RequestHeader {
+  name: string;
+  value: string;
+}
+
 export interface DownloadRow {
   id: string;
   url: string;
@@ -39,6 +44,7 @@ export interface DownloadRow {
   range_if: string | null;
   remote_total: number;
   http_status: number | null;
+  headers_json: string;
 }
 
 export interface PublicJob {
@@ -73,6 +79,7 @@ export interface PublicJob {
   rangeIf: string | null;
   remoteTotal: number;
   httpStatus: number | null;
+  headers: RequestHeader[];
 }
 
 export interface AppSettings {

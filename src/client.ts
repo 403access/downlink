@@ -1,3 +1,6 @@
+import { parseCurl } from "./curl";
+import type { RequestHeader } from "./types";
+
 type JobStatus =
   | "queued"
   | "downloading"
@@ -41,6 +44,7 @@ interface Job {
   rangeIf: string | null;
   remoteTotal: number;
   httpStatus: number | null;
+  headers: RequestHeader[];
 }
 
 interface AppSettings {
@@ -123,6 +127,7 @@ const state = {
   adding: false,
   batchMode: false,
   rangeMode: false,
+  importedHeaders: [] as RequestHeader[],
   notifications:
     localStorage.getItem("downlink.notifications") === "true",
   confirmResolve: null as ((value: boolean) => void) | null,
@@ -150,6 +155,16 @@ const els = {
   rangeEndInput: byId<HTMLInputElement>("rangeEndInput"),
   rangeIfInput: byId<HTMLInputElement>("rangeIfInput"),
   rangePreview: byId("rangePreview"),
+  headersPanel: byId("headersPanel"),
+  headersCount: byId("headersCount"),
+  headerChips: byId("headerChips"),
+  clearHeadersBtn: byId<HTMLButtonElement>("clearHeadersBtn"),
+  curlToggle: byId<HTMLButtonElement>("curlToggle"),
+  curlDialog: byId<HTMLDialogElement>("curlDialog"),
+  curlForm: byId<HTMLFormElement>("curlForm"),
+  curlInput: byId<HTMLTextAreaElement>("curlInput"),
+  curlError: byId("curlError"),
+  curlImportBtn: byId<HTMLButtonElement>("curlImportBtn"),
   addBtn: byId<HTMLButtonElement>("addBtn"),
   inspectBtn: byId<HTMLButtonElement>("inspectBtn"),
   pasteBtn: byId<HTMLButtonElement>("pasteBtn"),
@@ -1335,6 +1350,14 @@ function renderDetailMeta(job: Job): void {
     }
   }
   rows.push(metaRow("HTTP", esc(httpStatusLabel(job.httpStatus))));
+  if (job.headers.length > 0) {
+    rows.push(
+      metaRow(
+        "Headers",
+        `<span title="${esc(job.headers.map((header) => header.name).join(", "))}">${job.headers.length} custom header${job.headers.length === 1 ? "" : "s"}</span>`,
+      ),
+    );
+  }
   rows.push(metaRow("Resume", job.supportsRanges ? "HTTP Range" : "Server dependent"));
   rows.push(metaRow("Added", esc(fullDate(job.createdAt))));
   if (job.etag) rows.push(metaRow("ETag", `<code>${esc(job.etag)}</code>`));
@@ -1518,7 +1541,10 @@ async function inspectCurrentUrl(): Promise<void> {
   try {
     const result = await api<InspectResult>("/api/inspect", {
       method: "POST",
-      body: JSON.stringify({ url: raw }),
+      body: JSON.stringify({
+        url: raw,
+        headers: state.importedHeaders,
+      }),
     });
     if (request !== state.inspectRequest) return;
     state.inspectProbe = result.probe;
@@ -1597,6 +1623,7 @@ async function addInspectedUrl(): Promise<void> {
     const result = await addUrls([probe.finalUrl || probe.url], range);
     if (result.jobs.length > 0) {
       result.jobs.forEach((job) => handleJob(job, false));
+      if (result.errors.length === 0) clearImportedHeaders();
       toast(
         range ? "Added partial download" : "Added to downloads",
         result.jobs[0]?.fileName,
@@ -1626,6 +1653,7 @@ async function addInspectedUrl(): Promise<void> {
 async function addUrls(
   urls: string[],
   range: PartialRangeRequest | null = null,
+  headers: RequestHeader[] = state.importedHeaders,
 ): Promise<{
   jobs: Job[];
   errors: Array<{ url: string; error: string }>;
@@ -1633,6 +1661,7 @@ async function addUrls(
   const payload: Record<string, unknown> =
     urls.length === 1 ? { url: urls[0] } : { urls };
   if (range) payload.range = range;
+  if (headers.length > 0) payload.headers = headers;
   return api<{ jobs: Job[]; errors: Array<{ url: string; error: string }> }>(
     "/api/downloads",
     {
@@ -1683,6 +1712,93 @@ function updateAddButtonLabel(): void {
     : state.rangeMode
       ? "Add range"
       : "Add download";
+}
+
+function renderImportedHeaders(): void {
+  const headers = state.importedHeaders;
+  els.headersPanel.hidden = headers.length === 0;
+  els.headersCount.textContent = String(headers.length);
+  els.headerChips.innerHTML = headers
+    .map((header) => {
+      const preview =
+        header.value.length > 140
+          ? `${header.value.slice(0, 137)}…`
+          : header.value || "—";
+      return `<span class="header-chip" title="${esc(
+        `${header.name}: ${header.value}`,
+      )}"><b>${esc(header.name)}</b><span>${esc(preview)}</span></span>`;
+    })
+    .join("");
+}
+
+function setImportedHeaders(headers: RequestHeader[]): void {
+  state.importedHeaders = headers;
+  renderImportedHeaders();
+}
+
+function clearImportedHeaders(): void {
+  setImportedHeaders([]);
+}
+
+function looksLikeCurl(text: string): boolean {
+  return /^\s*(?:\$\s*)?(?:sudo\s+)?curl(?:\.exe)?\b/i.test(text);
+}
+
+function openCurlDialog(text = ""): void {
+  els.curlError.hidden = true;
+  els.curlError.textContent = "";
+  if (text) els.curlInput.value = text;
+  if (!els.curlDialog.open) els.curlDialog.showModal();
+  els.curlInput.focus();
+}
+
+function importCurlCommand(): void {
+  els.curlError.hidden = true;
+  try {
+    const parsed = parseCurl(els.curlInput.value);
+    if (state.batchMode) setBatchMode(false);
+    els.urlInput.value = parsed.url;
+    setImportedHeaders(parsed.headers);
+
+    if (parsed.range) {
+      setRangeMode(true);
+      els.rangeStartInput.value = String(parsed.range.start);
+      els.rangeEndInput.value =
+        parsed.range.end === null ? "" : String(parsed.range.end);
+      els.rangeIfInput.value = parsed.ifRange ?? "";
+    } else {
+      setRangeMode(false);
+      els.rangeStartInput.value = "";
+      els.rangeEndInput.value = "";
+      els.rangeIfInput.value = "";
+    }
+    updateRangePreview();
+    clearFormError();
+    closeDialog(els.curlDialog);
+
+    const details: string[] = [];
+    if (parsed.headers.length > 0) {
+      details.push(`${parsed.headers.length} header${parsed.headers.length === 1 ? "" : "s"}`);
+    }
+    if (parsed.range) {
+      details.push(
+        `bytes=${parsed.range.start}-${parsed.range.end ?? ""}`,
+      );
+    }
+    toast(
+      "cURL imported",
+      details.length > 0 ? details.join(" · ") : "URL filled in.",
+      "success",
+    );
+    if (parsed.warnings.length > 0) {
+      toast("Import notes", parsed.warnings.join(" "), "info");
+    }
+    els.urlInput.focus();
+  } catch (error) {
+    els.curlError.textContent =
+      error instanceof Error ? error.message : "Could not parse that cURL command.";
+    els.curlError.hidden = false;
+  }
 }
 
 function collectFormUrls(): string[] {
@@ -1744,6 +1860,7 @@ async function handleAddSubmit(): Promise<void> {
     const result = await addUrls(urls, range);
     result.jobs.forEach((job) => handleJob(job, false));
     if (result.jobs.length > 0) {
+      if (result.errors.length === 0) clearImportedHeaders();
       if (state.batchMode) {
         const failedUrls = new Set(result.errors.map((item) => item.url));
         els.batchInput.value = urls.filter((url) => failedUrls.has(url)).join("\n");
@@ -1823,6 +1940,10 @@ async function pasteFromClipboard(): Promise<void> {
   try {
     const text = await navigator.clipboard.readText();
     if (!text.trim()) return;
+    if (looksLikeCurl(text)) {
+      openCurlDialog(text);
+      return;
+    }
     if (text.includes("\n")) {
       setBatchMode(true);
       els.batchInput.value = text.trim();
@@ -2163,9 +2284,22 @@ function bindEvents(): void {
   }
 
   els.pasteBtn.addEventListener("click", () => void pasteFromClipboard());
+  els.curlToggle.addEventListener("click", () => openCurlDialog());
+  els.curlForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    importCurlCommand();
+  });
+  els.clearHeadersBtn.addEventListener("click", () => clearImportedHeaders());
   els.inspectBtn.addEventListener("click", () => void inspectCurrentUrl());
   els.inspectAddBtn.addEventListener("click", () => void addInspectedUrl());
   els.openFolderBtn.addEventListener("click", () => void openFolder());
+
+  els.urlInput.addEventListener("paste", (event) => {
+    const text = event.clipboardData?.getData("text") ?? "";
+    if (!looksLikeCurl(text)) return;
+    event.preventDefault();
+    openCurlDialog(text);
+  });
 
   els.searchInput.addEventListener("input", () => {
     state.query = els.searchInput.value.trim();
@@ -2221,6 +2355,7 @@ function bindEvents(): void {
     els.detailDialog,
     els.inspectDialog,
     els.settingsDialog,
+    els.curlDialog,
     els.confirmDialog,
   ]) {
     dialog.addEventListener("click", (event) => {
@@ -2339,6 +2474,10 @@ function bindEvents(): void {
       event.dataTransfer?.getData("text/uri-list") ||
       event.dataTransfer?.getData("text/plain") ||
       "";
+    if (looksLikeCurl(text)) {
+      openCurlDialog(text);
+      return;
+    }
     const url = text
       .split(/\r?\n/)
       .map((line) => line.trim())

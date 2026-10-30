@@ -26,6 +26,19 @@ const fixture = Bun.serve({
         headers: { "Content-Type": "text/html" },
       });
     }
+    if (url.pathname === "/header-check.mp4") {
+      if (req.headers.get("x-token") !== "secret") {
+        return new Response("forbidden", { status: 403 });
+      }
+      return new Response(null, {
+        headers: {
+          "Content-Type": "video/mp4",
+          "Content-Length": "4096",
+          "Accept-Ranges": "bytes",
+          ETag: '"header-check"',
+        },
+      });
+    }
     return new Response("not found", { status: 404 });
   },
 });
@@ -51,5 +64,14 @@ describe("URL probing", () => {
     await expect(
       probeUrl(`http://127.0.0.1:${fixture.port}/page`),
     ).rejects.toThrow("web page");
+  });
+
+  test("forwards imported headers during probing", async () => {
+    const result = await probeUrl(
+      `http://127.0.0.1:${fixture.port}/header-check.mp4`,
+      [{ name: "X-Token", value: "secret" }],
+    );
+    expect(result.totalBytes).toBe(4096);
+    expect(result.etag).toBe('"header-check"');
   });
 });

@@ -145,6 +145,7 @@ describe("URL and job normalization", () => {
       range_if: null,
       remote_total: 1000,
       http_status: 206,
+      headers_json: "[]",
     };
     const job = toPublicJob(row, { speedBps: 125, fileExists: true });
     expect(job.progress).toBe(25);

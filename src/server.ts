@@ -6,17 +6,18 @@ import { dirname, join, resolve } from "node:path";
 import index from "./index.html";
 import { Store, partPathFor } from "./db";
 import { DownloadEngine } from "./engine";
+import { buildRequestHeaders, normalizeRequestHeaders } from "./headers";
 import { ProbeError, probeUrl } from "./probe";
 import type {
   AppSettings,
   DownloadRow,
   PartialRangeOptions,
   PublicJob,
+  RequestHeader,
 } from "./types";
 import {
   contentTypeForFile,
   contentDisposition,
-  DOWNLOAD_HEADERS,
   expandHome,
   kindFor,
   normalizeDownloadUrl,
@@ -172,9 +173,16 @@ function safeCompare(a: string, b: string): boolean {
 
 const PREVIEW_SECRET = randomBytes(32);
 
-function makePreviewToken(rawUrl: string): string {
+function makePreviewToken(
+  rawUrl: string,
+  headers: RequestHeader[] = [],
+): string {
   const payload = Buffer.from(
-    JSON.stringify({ u: rawUrl, e: Date.now() + PREVIEW_TTL_MS }),
+    JSON.stringify({
+      u: rawUrl,
+      e: Date.now() + PREVIEW_TTL_MS,
+      h: headers,
+    }),
   ).toString("base64url");
   const signature = createHmac("sha256", PREVIEW_SECRET)
     .update(payload)
@@ -182,7 +190,10 @@ function makePreviewToken(rawUrl: string): string {
   return `${payload}.${signature}`;
 }
 
-function readPreviewToken(token: string): URL {
+function readPreviewToken(token: string): {
+  url: URL;
+  headers: RequestHeader[];
+} {
   const [payload, signature] = token.split(".");
   if (!payload || !signature) throw new HttpError("Invalid preview token.", 403);
   const expected = createHmac("sha256", PREVIEW_SECRET)
@@ -191,11 +202,12 @@ function readPreviewToken(token: string): URL {
   if (!safeCompare(signature, expected)) {
     throw new HttpError("Invalid preview token.", 403);
   }
-  let parsed: { u?: unknown; e?: unknown };
+  let parsed: { u?: unknown; e?: unknown; h?: unknown };
   try {
     parsed = JSON.parse(Buffer.from(payload, "base64url").toString()) as {
       u?: unknown;
       e?: unknown;
+      h?: unknown;
     };
   } catch {
     throw new HttpError("Invalid preview token.", 403);
@@ -204,7 +216,10 @@ function readPreviewToken(token: string): URL {
     throw new HttpError("This preview link expired. Inspect the URL again.", 403);
   }
   if (typeof parsed.u !== "string") throw new HttpError("Invalid preview token.", 403);
-  return normalizeDownloadUrl(parsed.u);
+  return {
+    url: normalizeDownloadUrl(parsed.u),
+    headers: normalizeRequestHeaders(parsed.h),
+  };
 }
 
 function jobAndFile(id: string): { job: DownloadRow; path: string } {
@@ -337,6 +352,7 @@ function parsePartialRange(raw: unknown): PartialRangeOptions | null {
 async function addUrls(
   rawUrls: string[],
   range: PartialRangeOptions | null = null,
+  headers: RequestHeader[] = [],
 ) {
   const urls = [...new Set(rawUrls.map((value) => value.trim()).filter(Boolean))];
   if (urls.length === 0) throw new HttpError("Paste at least one URL.", 400);
@@ -349,11 +365,12 @@ async function addUrls(
 
   const results = await withConcurrency(urls, PROBE_CONCURRENCY, async (url) => {
     try {
-      const probe = await probeUrl(url);
+      const probe = await probeUrl(url, headers);
       const job = engine.addDownload(
         probe,
         engine.getSettings().downloadDir,
         range ?? undefined,
+        headers,
       );
       return { url, job, error: null };
     } catch (error) {
@@ -429,7 +446,8 @@ const server = Bun.serve({
         }
         if (raw.length === 0) throw new HttpError("A URL is required.", 400);
         const range = parsePartialRange(body.range);
-        const result = await addUrls(raw, range);
+        const headers = normalizeRequestHeaders(body.headers);
+        const result = await addUrls(raw, range, headers);
         if (result.jobs.length === 0) {
           return json(
             {
@@ -564,14 +582,15 @@ const server = Bun.serve({
       POST: async (req) => {
         const body = await readJson(req);
         if (typeof body.url !== "string") throw new HttpError("A URL is required.", 400);
-        const probe = await probeUrl(body.url);
+        const headers = normalizeRequestHeaders(body.headers);
+        const probe = await probeUrl(body.url, headers);
         const canPreview = ["video", "audio", "image"].includes(probe.kind);
         return json({
           probe,
           canPreview,
           previewUrl: canPreview
             ? `/api/remote-preview?token=${encodeURIComponent(
-                makePreviewToken(probe.finalUrl),
+                makePreviewToken(probe.finalUrl, headers),
               )}`
             : null,
         });
@@ -582,14 +601,14 @@ const server = Bun.serve({
       GET: async (req) => {
         const token = new URL(req.url).searchParams.get("token");
         if (!token) throw new HttpError("Missing preview token.", 403);
-        const url = readPreviewToken(token);
-        const headers: Record<string, string> = { ...DOWNLOAD_HEADERS };
+        const preview = readPreviewToken(token);
+        const headers = buildRequestHeaders(preview.headers);
         const range = req.headers.get("range");
-        if (range) headers.Range = range;
+        if (range) headers.set("Range", range);
         const ifRange = req.headers.get("if-range");
-        if (ifRange) headers["If-Range"] = ifRange;
+        if (ifRange) headers.set("If-Range", ifRange);
 
-        const upstream = await fetch(url, {
+        const upstream = await fetch(preview.url, {
           headers,
           redirect: "follow",
           signal: req.signal,
@@ -618,10 +637,10 @@ const server = Bun.serve({
       HEAD: async (req) => {
         const token = new URL(req.url).searchParams.get("token");
         if (!token) throw new HttpError("Missing preview token.", 403);
-        const url = readPreviewToken(token);
-        const upstream = await fetch(url, {
+        const preview = readPreviewToken(token);
+        const upstream = await fetch(preview.url, {
           method: "HEAD",
-          headers: DOWNLOAD_HEADERS,
+          headers: buildRequestHeaders(preview.headers),
           redirect: "follow",
           signal: req.signal,
         });

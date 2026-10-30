@@ -947,6 +947,124 @@ kbd {
   opacity: 0.4;
 }
 
+.request-headers {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.request-headers-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.request-headers-title {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.request-headers-title .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--cyan);
+}
+
+.headers-count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  color: var(--dim);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.header-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.header-chip {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  max-width: 270px;
+  padding: 3px 7px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-deep);
+  color: var(--dim);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.header-chip b {
+  color: var(--text-soft);
+  font-weight: 650;
+}
+
+.header-chip span {
+  overflow: hidden;
+  max-width: 170px;
+  color: var(--faint);
+  text-overflow: ellipsis;
+}
+
+.curl-card {
+  width: min(700px, calc(100vw - 40px));
+}
+
+.curl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 20px 24px;
+}
+
+.curl-input {
+  width: 100%;
+  min-height: 180px;
+  padding: 12px 13px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  outline: 0;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+:root[data-theme="light"] .curl-input {
+  background: #fbfcf8;
+}
+
+.curl-input:focus {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+  box-shadow: 0 0 0 3px var(--cyan-soft);
+}
+
+.curl-input::placeholder {
+  color: var(--faint);
+}
+
 .composer-bottom {
   display: flex;
   gap: 16px;
@@ -2986,6 +3104,14 @@ button:focus-visible {
 
   .range-fields {
     grid-template-columns: 1fr;
+  }
+
+  .curl-body {
+    padding: 18px 17px;
+  }
+
+  .header-chip {
+    max-width: 100%;
   }
 
   .composer-bottom {
