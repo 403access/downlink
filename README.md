@@ -1,0 +1,182 @@
+# Downlink
+
+A local-first, resumable media and file downloader built with **pure Bun** — no runtime
+dependencies, no framework, and no build step. The web UI is served by `Bun.serve` using
+Bun's native HTML imports, the API runs on the same server, and download state lives in
+SQLite via `bun:sqlite`.
+
+![Downlink](screenshot.png)
+
+The detail view includes a range-enabled player, resumable progress, metadata and file actions:
+
+![Preview and metadata](preview.png)
+
+## Features
+
+- **Resumable downloads** with HTTP `Range`, `If-Range`, `ETag` and `Last-Modified`
+  validation. Pausing, restarting the server, or a dropped connection keeps the partial
+  file and continues from the correct byte.
+- **Live preview** for video, audio and images — including while a file is still
+  downloading. The local preview endpoint supports byte ranges, so seeking works as the
+  file grows.
+- **Inspect before downloading** — probe a remote URL, see its size, type, range support
+  and validators, and stream a signed remote preview without committing to a download.
+- **Download queue** with a configurable concurrency limit (1–10), queued/paused/completed
+  states, retry, cancel and delete.
+- **Live progress** over Server-Sent Events: per-file speed, ETA, progress, combined speed,
+  and queue counts. No polling.
+- **Global speed limit** in MB/s, applied fairly across active downloads.
+- **SQLite persistence** for the queue, settings and history. Interrupted jobs are
+  recovered automatically after a restart.
+- **Filename handling** from `Content-Disposition` (`filename*` included) with safe
+  sanitization, extension inference from MIME type, and collision-free `name (1).ext`
+  paths.
+- **Batch mode** for adding multiple URLs (line-separated) with per-URL results.
+- **Browser conveniences**: paste from clipboard, drag-and-drop a link, search, filter,
+  keyboard shortcuts (`⌘K` search, `/` search, `n` new URL), dark/light theme, desktop
+  notifications, toasts, and OS file-manager reveal.
+- **Responsive UI** with no client-side framework. The client is TypeScript bundled by
+  Bun's native HTML pipeline.
+- **Files stay local.** No telemetry, accounts, cloud service or external database.
+
+## Requirements
+
+- [Bun](https://bun.sh) 1.2 or newer (developed against Bun 1.4).
+- macOS, Linux or Windows. `Reveal` uses `open`/`explorer`/`xdg-open`.
+
+## Run it
+
+```bash
+bun install       # only installs TypeScript dev types
+bun run dev       # hot reload on http://127.0.0.1:3000
+```
+
+For a normal run:
+
+```bash
+bun start
+```
+
+The server binds to `127.0.0.1` by default. Downloads are written to `./downloads`, and
+the SQLite database lives in `./data/downlink.db`.
+
+### Environment variables
+
+| Variable       | Default                    | Description                                  |
+| -------------- | -------------------------- | -------------------------------------------- |
+| `PORT`         | `3000`                     | HTTP port.                                   |
+| `HOST`         | `127.0.0.1`                | Bind address. Only expose on trusted LANs.   |
+| `DOWNLOAD_DIR` | `./downloads`              | Initial save folder (also editable in the UI).|
+| `DATA_DIR`     | `./data`                   | Directory for the SQLite database.           |
+
+```bash
+PORT=8080 DOWNLOAD_DIR="$HOME/Downloads/Video" bun start
+```
+
+## Using the app
+
+1. Paste a **direct** HTTP/HTTPS file URL, for example a `.mp4`, `.webm`, `.mp3`,
+   `.jpg`, `.zip` or PDF.
+2. Press **Add download**, or **Preview** to inspect and stream the remote file first.
+3. While downloading you can pause, resume, preview the partial file, or cancel.
+4. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
+
+The **Preview** button and the detail player use `/api/downloads/:id/preview`, which
+supports `Range` requests against the `.part` file while a download is in progress. This
+works best for MP4 files with metadata at the front; some codecs/containers are not
+playable by every browser.
+
+## API overview
+
+| Method | Route                              | Purpose                              |
+| ------ | ---------------------------------- | ------------------------------------ |
+| GET    | `/api/health`                      | Engine health and save folder.       |
+| GET    | `/api/downloads`                   | Snapshot: jobs, summary, settings.   |
+| POST   | `/api/downloads`                   | Add `{ url }` or `{ urls: [] }`.     |
+| POST   | `/api/inspect`                     | Probe a URL and create a preview.    |
+| GET    | `/api/events`                      | SSE stream of job/settings changes.  |
+| GET    | `/api/downloads/:id`               | Single job.                          |
+| POST   | `/api/downloads/:id/pause`         | Pause (or pause queued job).         |
+| POST   | `/api/downloads/:id/resume`        | Resume a paused job.                 |
+| POST   | `/api/downloads/:id/retry`         | Retry failed/canceled job.           |
+| POST   | `/api/downloads/:id/cancel`        | Cancel and remove partial data.      |
+| POST   | `/api/downloads/:id/reveal`        | Reveal file/folder in file manager.  |
+| DELETE | `/api/downloads/:id?files=true`    | Remove job and file(s).              |
+| GET    | `/api/downloads/:id/preview`       | Range-enabled inline preview.        |
+| GET    | `/api/downloads/:id/file`          | Range-enabled attachment download.   |
+| GET    | `/api/preview/:id`                 | Short alias for preview.             |
+| GET    | `/api/files/:id`                   | Short alias for attachment.          |
+| GET    | `/api/remote-preview?token=…`      | Signed remote preview proxy.         |
+| GET    | `/api/settings`                    | Read settings.                       |
+| PATCH  | `/api/settings`                    | Update folder/concurrency/limit.     |
+| POST   | `/api/actions/pause-all`           | Pause the queue.                     |
+| POST   | `/api/actions/resume-all`          | Resume paused downloads.             |
+| POST   | `/api/actions/clear-completed`     | Remove completed records (keep files).|
+| POST   | `/api/actions/clear-history`       | Remove failed/canceled records.      |
+| POST   | `/api/actions/open-folder`         | Open the save folder.                |
+
+## How resume works
+
+1. A download writes to `<filename>.part` and stores its byte count in SQLite.
+2. Pause/cancel/restart leaves the `.part` file in place.
+3. On resume, Downlink sends `Range: bytes=<downloaded>-` and, when available,
+   `If-Range: <ETag or Last-Modified>`.
+4. A `206 Partial Content` response is appended. If the server replies `200` or the
+   validator changed, the partial file is truncated and the download restarts from byte 0.
+5. When the response ends, the part file is renamed to its final name and the job is
+   marked completed.
+
+The fixture tests in `tests/` exercise the range parser, safe filename handling and the
+resume behavior against a local range-capable server.
+
+## Development
+
+```bash
+bun run dev        # server + client hot reload
+bun run typecheck  # tsc --noEmit
+bun test           # unit/integration tests
+bun run test:e2e   # isolated Chrome CDP pause/resume test
+bun run test:browser # smoke + screenshots against a running app
+```
+
+The CDP scripts use the local Chrome/Chromium installation and write screenshots to
+`artifacts/` (ignored by git). Set `CHROME_PATH` if the browser is not in a standard
+location, and `APP_URL` for the smoke test.
+
+Project layout:
+
+```text
+src/
+  server.ts      Bun.serve routes, SSE, file responses, settings
+  engine.ts      download scheduler, resumable writer, speed meter, limiter
+  probe.ts       HEAD / one-byte Range probing and metadata
+  db.ts          bun:sqlite schema and persistence
+  utils.ts       filename, MIME, range and URL helpers
+  index.html     Bun-native fullstack entry
+  client.ts      framework-free UI
+  styles.css     responsive dark/light design
+tests/
+  utils.test.ts
+  engine.test.ts
+  probe.test.ts
+scripts/browser/
+  cdp.ts         shared headless-Chrome / DevTools Protocol helpers
+  pause.ts       isolated pause/resume E2E with Range + If-Range assertions
+  smoke.ts       desktop/mobile/theme screenshots and console-error check
+downloads/       default save folder
+data/            SQLite database (created at runtime)
+artifacts/       generated browser screenshots (ignored)
+```
+
+## Notes and limits
+
+- This is a **direct-file** downloader. HLS/DASH manifests (`.m3u8`, `.mpd`) are detected
+  and rejected rather than incorrectly saved as playlists.
+- Sites that require cookies, a logged-in session, or a specific `Referer` may return
+  401/403. Downlink does not bypass authentication or anti-bot protections.
+- The signed remote preview proxy is intentionally limited to URLs inspected by the
+  engine. The server binds to localhost by default; do not expose it to an untrusted
+  network.
+- Only download content you have permission to save.
+- The UI uses browser-native media playback. Unsupported codecs can still be downloaded
+  and opened in a local player.

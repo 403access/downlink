@@ -1,0 +1,22 @@
+{
+  "name": "downlink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local-first, resumable media downloader built with pure Bun.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/server.ts",
+    "start": "bun src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:e2e": "bun scripts/browser/pause.ts",
+    "test:browser": "bun scripts/browser/smoke.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "bun": ">=1.2"
+  }
+}

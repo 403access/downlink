@@ -1,0 +1,9 @@
+node_modules/
+downloads/*
+!downloads/.gitkeep
+data/
+artifacts/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
