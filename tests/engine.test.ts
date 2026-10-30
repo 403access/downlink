@@ -146,4 +146,35 @@ describe("download engine", () => {
     expect(ifRangeRequests).toContain(ETAG);
     expect(existsSync(partPath)).toBe(false);
   }, 20_000);
+
+  test("downloads an explicit 206 byte range and records it", async () => {
+    engine.setSettings({ ...settings, speedLimitBps: 0 });
+    const url = `http://127.0.0.1:${fixture.port}/test.bin`;
+    const probe = await probeUrl(url);
+    const start = 1_200_000;
+    const end = 1_700_000;
+
+    const job = engine.addDownload(probe, settings.downloadDir, {
+      start,
+      end,
+      ifRange: ETAG,
+    });
+    await waitFor(() => engine.getPublicJob(job.id)?.status === "completed");
+
+    const completed = engine.getPublicJob(job.id);
+    expect(completed?.isPartial).toBe(true);
+    expect(completed?.rangeStart).toBe(start);
+    expect(completed?.rangeEnd).toBe(end);
+    expect(completed?.remoteTotal).toBe(FILE_SIZE);
+    expect(completed?.httpStatus).toBe(206);
+    expect(completed?.downloadedBytes).toBe(end - start + 1);
+    expect(completed?.fileName).toContain(`[${start}-${end}]`);
+    expect(rangeRequests).toContain(`bytes=${start}-${end}`);
+    expect(ifRangeRequests).toContain(ETAG);
+
+    const saved = new Uint8Array(await readFile(completed?.filePath ?? ""));
+    const expected = buffer.slice(start, end + 1);
+    expect(saved.byteLength).toBe(expected.byteLength);
+    expect(Buffer.from(saved).equals(Buffer.from(expected))).toBe(true);
+  }, 20_000);
 });

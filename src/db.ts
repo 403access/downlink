@@ -23,7 +23,12 @@ CREATE TABLE IF NOT EXISTS downloads (
   started_at INTEGER,
   completed_at INTEGER,
   attempts INTEGER NOT NULL DEFAULT 0,
-  speed_bps INTEGER NOT NULL DEFAULT 0
+  speed_bps INTEGER NOT NULL DEFAULT 0,
+  range_start INTEGER NOT NULL DEFAULT 0,
+  range_end INTEGER,
+  range_if TEXT,
+  remote_total INTEGER NOT NULL DEFAULT 0,
+  http_status INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
@@ -53,6 +58,11 @@ const PATCHABLE = new Set<keyof DownloadRow>([
   "completed_at",
   "attempts",
   "speed_bps",
+  "range_start",
+  "range_end",
+  "range_if",
+  "remote_total",
+  "http_status",
 ]);
 
 export interface NewDownload {
@@ -66,6 +76,10 @@ export interface NewDownload {
   supportsRanges: boolean;
   etag: string | null;
   lastModified: string | null;
+  rangeStart: number;
+  rangeEnd: number | null;
+  rangeIf: string | null;
+  remoteTotal: number;
   now: number;
 }
 
@@ -79,6 +93,29 @@ export class Store {
     this.db.exec("PRAGMA synchronous = NORMAL;");
     this.db.exec("PRAGMA busy_timeout = 5000;");
     this.db.exec(SCHEMA);
+    this.migrate();
+  }
+
+  private migrate(): void {
+    const existing = new Set(
+      (
+        this.db.query("PRAGMA table_info(downloads)").all() as Array<{
+          name: string;
+        }>
+      ).map((column) => column.name),
+    );
+    const additions: Array<[string, string]> = [
+      ["range_start", "INTEGER NOT NULL DEFAULT 0"],
+      ["range_end", "INTEGER"],
+      ["range_if", "TEXT"],
+      ["remote_total", "INTEGER NOT NULL DEFAULT 0"],
+      ["http_status", "INTEGER"],
+    ];
+    for (const [name, definition] of additions) {
+      if (!existing.has(name)) {
+        this.db.exec(`ALTER TABLE downloads ADD COLUMN ${name} ${definition};`);
+      }
+    }
   }
 
   close(): void {
@@ -115,8 +152,9 @@ export class Store {
         `INSERT INTO downloads (
           id, url, final_url, file_name, file_path, content_type,
           total_bytes, downloaded_bytes, supports_ranges, etag, last_modified, status,
-          created_at, updated_at, attempts, speed_bps
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'queued', ?, ?, 0, 0)`,
+          created_at, updated_at, attempts, speed_bps,
+          range_start, range_end, range_if, remote_total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'queued', ?, ?, 0, 0, ?, ?, ?, ?)`,
       )
       .run(
         input.id,
@@ -131,6 +169,10 @@ export class Store {
         input.lastModified,
         input.now,
         input.now,
+        input.rangeStart,
+        input.rangeEnd,
+        input.rangeIf,
+        input.remoteTotal,
       );
     const row = this.getDownload(input.id);
     if (!row) throw new Error("Failed to create download record.");

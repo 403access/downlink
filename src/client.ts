@@ -35,6 +35,12 @@ interface Job {
   host: string;
   canPreview: boolean;
   fileExists: boolean;
+  isPartial: boolean;
+  rangeStart: number;
+  rangeEnd: number | null;
+  rangeIf: string | null;
+  remoteTotal: number;
+  httpStatus: number | null;
 }
 
 interface AppSettings {
@@ -83,6 +89,12 @@ interface InspectResult {
   previewUrl: string | null;
 }
 
+interface PartialRangeRequest {
+  start: number;
+  end: number | null;
+  ifRange: string | null;
+}
+
 interface ApiErrorBody {
   error?: string;
   errors?: Array<{ url: string; error: string }>;
@@ -110,6 +122,7 @@ const state = {
   offline: false,
   adding: false,
   batchMode: false,
+  rangeMode: false,
   notifications:
     localStorage.getItem("downlink.notifications") === "true",
   confirmResolve: null as ((value: boolean) => void) | null,
@@ -131,6 +144,12 @@ const els = {
   urlInput: byId<HTMLInputElement>("urlInput"),
   batchInput: byId<HTMLTextAreaElement>("batchInput"),
   batchToggle: byId<HTMLButtonElement>("batchToggle"),
+  rangeToggle: byId<HTMLButtonElement>("rangeToggle"),
+  rangePanel: byId("rangePanel"),
+  rangeStartInput: byId<HTMLInputElement>("rangeStartInput"),
+  rangeEndInput: byId<HTMLInputElement>("rangeEndInput"),
+  rangeIfInput: byId<HTMLInputElement>("rangeIfInput"),
+  rangePreview: byId("rangePreview"),
   addBtn: byId<HTMLButtonElement>("addBtn"),
   inspectBtn: byId<HTMLButtonElement>("inspectBtn"),
   pasteBtn: byId<HTMLButtonElement>("pasteBtn"),
@@ -166,6 +185,7 @@ const els = {
   connText: byId("connText"),
   detailDialog: byId<HTMLDialogElement>("detailDialog"),
   detailKind: byId("detailKind"),
+  detailRangeBadge: byId("detailRangeBadge"),
   detailStatusText: byId("detailStatusText"),
   detailTitle: byId("detailTitle"),
   detailHost: byId("detailHost"),
@@ -281,6 +301,22 @@ function relativeTime(timestamp: number | null): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function httpStatusLabel(status: number | null): string {
+  if (status === 200) return "200 OK";
+  if (status === 206) return "206 Partial Content";
+  if (status === 416) return "416 Range Not Satisfiable";
+  if (status) return `HTTP ${status}`;
+  return "Waiting for response";
+}
+
+function rangeLabel(job: Job): string {
+  if (!job.isPartial) return "Full file";
+  const end = job.rangeEnd ?? (job.remoteTotal > 0 ? job.remoteTotal - 1 : null);
+  return `bytes=${job.rangeStart.toLocaleString()}-${
+    end === null ? "" : end.toLocaleString()
+  }`;
 }
 
 function fullDate(timestamp: number | null): string {
@@ -574,7 +610,8 @@ function matchesSearch(job: Job): boolean {
     job.host.toLowerCase().includes(query) ||
     job.url.toLowerCase().includes(query) ||
     job.contentType.toLowerCase().includes(query) ||
-    job.status.includes(query)
+    job.status.includes(query) ||
+    (job.isPartial && "206 partial range".includes(query))
   );
 }
 
@@ -706,7 +743,10 @@ function createCard(job: Job): HTMLElement {
       <div class="thumb-shade"></div>
       <div class="thumb-top">
         <span class="status-badge"><span class="status-dot"></span><span class="status-text"></span></span>
-        <span class="kind-badge">${icon(kindIcon(job.kind))}<span>${esc(kindLabel(job.kind))}</span></span>
+        <span class="thumb-badges">
+          <span class="partial-badge" hidden>206</span>
+          <span class="kind-badge">${icon(kindIcon(job.kind))}<span>${esc(kindLabel(job.kind))}</span></span>
+        </span>
       </div>
       <div class="thumb-bottom">
         <span class="thumb-size"></span>
@@ -758,6 +798,13 @@ function updateCard(card: HTMLElement, job: Job): void {
 
   const kindBadge = card.querySelector<HTMLElement>(".kind-badge span");
   if (kindBadge) kindBadge.textContent = kindLabel(job.kind);
+
+  const partialBadge = card.querySelector<HTMLElement>(".partial-badge");
+  if (partialBadge) {
+    partialBadge.hidden = !job.isPartial;
+    partialBadge.textContent = job.httpStatus === 206 ? "206" : "range";
+    partialBadge.title = rangeLabel(job);
+  }
 
   const name = card.querySelector<HTMLElement>(".file-name");
   if (name) name.textContent = job.fileName;
@@ -1202,6 +1249,9 @@ function updateDetail(job: Job): void {
   if (!els.detailDialog.open || state.detailId !== job.id) return;
 
   els.detailKind.textContent = job.kind;
+  els.detailRangeBadge.hidden = !job.isPartial;
+  els.detailRangeBadge.textContent =
+    job.httpStatus === 206 ? "206 partial" : "partial range";
   els.detailTitle.textContent = job.fileName;
   els.detailHost.textContent = `${job.host} · ${statusLabel(job.status)}`;
   els.detailStatusText.textContent =
@@ -1275,6 +1325,16 @@ function renderDetailMeta(job: Job): void {
     ),
   );
   rows.push(metaRow("Saved to", `<code title="${esc(job.filePath)}">${esc(job.filePath)}</code>`));
+  if (job.isPartial) {
+    rows.push(metaRow("Range", `<code>${esc(rangeLabel(job))}</code>`));
+    if (job.remoteTotal > 0) {
+      rows.push(metaRow("Remote size", esc(formatBytes(job.remoteTotal))));
+    }
+    if (job.rangeIf) {
+      rows.push(metaRow("If-Range", `<code>${esc(job.rangeIf)}</code>`));
+    }
+  }
+  rows.push(metaRow("HTTP", esc(httpStatusLabel(job.httpStatus))));
   rows.push(metaRow("Resume", job.supportsRanges ? "HTTP Range" : "Server dependent"));
   rows.push(metaRow("Added", esc(fullDate(job.createdAt))));
   if (job.etag) rows.push(metaRow("ETag", `<code>${esc(job.etag)}</code>`));
@@ -1522,14 +1582,23 @@ function renderInspectResult(result: InspectResult): void {
 async function addInspectedUrl(): Promise<void> {
   const probe = state.inspectProbe;
   if (!probe) return;
+  let range: PartialRangeRequest | null = null;
+  try {
+    range = getRangeFromForm();
+  } catch (error) {
+    els.inspectError.textContent =
+      error instanceof Error ? error.message : "Enter a valid byte range.";
+    els.inspectError.hidden = false;
+    return;
+  }
   setBusy(els.inspectAddBtn, true, "Adding…");
   els.inspectError.hidden = true;
   try {
-    const result = await addUrls([probe.finalUrl || probe.url]);
+    const result = await addUrls([probe.finalUrl || probe.url], range);
     if (result.jobs.length > 0) {
       result.jobs.forEach((job) => handleJob(job, false));
       toast(
-        result.jobs.length === 1 ? "Added to downloads" : `Added ${result.jobs.length} downloads`,
+        range ? "Added partial download" : "Added to downloads",
         result.jobs[0]?.fileName,
         "success",
       );
@@ -1554,17 +1623,66 @@ async function addInspectedUrl(): Promise<void> {
 // Add downloads
 // ---------------------------------------------------------------------------
 
-async function addUrls(urls: string[]): Promise<{
+async function addUrls(
+  urls: string[],
+  range: PartialRangeRequest | null = null,
+): Promise<{
   jobs: Job[];
   errors: Array<{ url: string; error: string }>;
 }> {
+  const payload: Record<string, unknown> =
+    urls.length === 1 ? { url: urls[0] } : { urls };
+  if (range) payload.range = range;
   return api<{ jobs: Job[]; errors: Array<{ url: string; error: string }> }>(
     "/api/downloads",
     {
       method: "POST",
-      body: JSON.stringify(urls.length === 1 ? { url: urls[0] } : { urls }),
+      body: JSON.stringify(payload),
     },
   );
+}
+
+function getRangeFromForm(): PartialRangeRequest | null {
+  if (!state.rangeMode) return null;
+  const startText = els.rangeStartInput.value.trim();
+  const endText = els.rangeEndInput.value.trim();
+  const start = startText ? Number(startText) : 0;
+  const end = endText ? Number(endText) : null;
+
+  if (!Number.isInteger(start) || start < 0) {
+    throw new Error("Range start must be a non-negative whole number.");
+  }
+  if (end !== null && (!Number.isInteger(end) || end < start)) {
+    throw new Error("Range end must be a whole number at or after the start.");
+  }
+  if (start === 0 && end === null) {
+    throw new Error("Enter a start byte or an end byte for a partial download.");
+  }
+
+  return {
+    start,
+    end,
+    ifRange: els.rangeIfInput.value.trim() || null,
+  };
+}
+
+function updateRangePreview(): void {
+  const start = els.rangeStartInput.value.trim() || "0";
+  const end = els.rangeEndInput.value.trim();
+  const ifRange = els.rangeIfInput.value.trim();
+  els.rangePreview.textContent = `bytes=${start}-${end}${
+    ifRange ? ` · If-Range: ${ifRange}` : ""
+  }`;
+}
+
+function updateAddButtonLabel(): void {
+  const addLabel = els.addBtn.querySelector("span");
+  if (!addLabel) return;
+  addLabel.textContent = state.batchMode
+    ? "Add all"
+    : state.rangeMode
+      ? "Add range"
+      : "Add download";
 }
 
 function collectFormUrls(): string[] {
@@ -1604,6 +1722,17 @@ async function handleAddSubmit(): Promise<void> {
     }
   }
 
+  let range: PartialRangeRequest | null = null;
+  try {
+    range = getRangeFromForm();
+  } catch (error) {
+    showFormError(
+      error instanceof Error ? error.message : "Enter a valid byte range.",
+    );
+    els.rangeStartInput.focus();
+    return;
+  }
+
   state.adding = true;
   setBusy(
     els.addBtn,
@@ -1612,7 +1741,7 @@ async function handleAddSubmit(): Promise<void> {
   );
 
   try {
-    const result = await addUrls(urls);
+    const result = await addUrls(urls, range);
     result.jobs.forEach((job) => handleJob(job, false));
     if (result.jobs.length > 0) {
       if (state.batchMode) {
@@ -1623,7 +1752,9 @@ async function handleAddSubmit(): Promise<void> {
       }
       toast(
         result.jobs.length === 1
-          ? "Added to downloads"
+          ? range
+            ? "Added partial download"
+            : "Added to downloads"
           : `Added ${result.jobs.length} downloads`,
         result.jobs.length === 1 ? result.jobs[0]?.fileName : "They are queued now.",
         "success",
@@ -1652,7 +1783,19 @@ async function handleAddSubmit(): Promise<void> {
   }
 }
 
+function setRangeMode(enabled: boolean): void {
+  if (enabled && state.batchMode) setBatchMode(false);
+  state.rangeMode = enabled;
+  els.rangePanel.hidden = !enabled;
+  els.rangeToggle.classList.toggle("is-active", enabled);
+  els.rangeToggle.setAttribute("aria-pressed", String(enabled));
+  updateRangePreview();
+  updateAddButtonLabel();
+  if (enabled) els.rangeStartInput.focus();
+}
+
 function setBatchMode(enabled: boolean): void {
+  if (enabled && state.rangeMode) setRangeMode(false);
   state.batchMode = enabled;
   const urlField = document.querySelector<HTMLElement>(".url-field");
   if (urlField) urlField.hidden = enabled;
@@ -1661,8 +1804,7 @@ function setBatchMode(enabled: boolean): void {
   els.batchToggle.querySelector("span")?.replaceChildren(
     document.createTextNode(enabled ? "Single link" : "Batch mode"),
   );
-  const addLabel = els.addBtn.querySelector("span");
-  if (addLabel) addLabel.textContent = enabled ? "Add all" : "Add download";
+  updateAddButtonLabel();
 
   if (enabled) {
     if (!els.batchInput.value && els.urlInput.value.trim()) {
@@ -2007,6 +2149,18 @@ function bindEvents(): void {
   els.batchToggle.addEventListener("click", () => {
     setBatchMode(!state.batchMode);
   });
+
+  els.rangeToggle.addEventListener("click", () => {
+    setRangeMode(!state.rangeMode);
+  });
+
+  for (const input of [
+    els.rangeStartInput,
+    els.rangeEndInput,
+    els.rangeIfInput,
+  ]) {
+    input.addEventListener("input", updateRangePreview);
+  }
 
   els.pasteBtn.addEventListener("click", () => void pasteFromClipboard());
   els.inspectBtn.addEventListener("click", () => void inspectCurrentUrl());

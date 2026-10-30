@@ -1,4 +1,4 @@
-import { basename, extname, resolve } from "node:path";
+import { basename, extname, parse, resolve } from "node:path";
 import { homedir } from "node:os";
 import type {
   DownloadRow,
@@ -299,6 +299,23 @@ export function chooseFileName(
   return sanitizeFileName(name, "download");
 }
 
+export function partialFileName(
+  fileName: string,
+  start: number,
+  end: number | null,
+): string {
+  const parsed = parse(fileName);
+  const suffix = end !== null ? ` [${start}-${end}]` : ` [from ${start}]`;
+  return sanitizeFileName(`${parsed.name}${suffix}${parsed.ext}`, fileName);
+}
+
+export function isPartialRange(
+  start: number,
+  end: number | null,
+): boolean {
+  return start > 0 || end !== null;
+}
+
 export function normalizeDownloadUrl(raw: string): URL {
   let url: URL;
   try {
@@ -402,6 +419,10 @@ export function toPublicJob(
     speed > 0 && total > downloaded
       ? Math.max(1, Math.ceil((total - downloaded) / speed))
       : null;
+  const rangeStart = Math.max(0, row.range_start ?? 0);
+  const rangeEnd = row.range_end == null ? null : Math.max(0, row.range_end);
+  const isPartial = rangeStart > 0 || rangeEnd !== null;
+  const remoteTotal = Math.max(0, row.remote_total ?? 0);
 
   return {
     id: row.id,
@@ -431,6 +452,12 @@ export function toPublicJob(
       kindFor(row.content_type, row.file_name),
     ),
     fileExists: options.fileExists ?? true,
+    isPartial,
+    rangeStart,
+    rangeEnd,
+    rangeIf: row.range_if,
+    remoteTotal,
+    httpStatus: row.http_status,
   };
 }
 

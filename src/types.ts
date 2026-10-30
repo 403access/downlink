@@ -34,6 +34,11 @@ export interface DownloadRow {
   completed_at: number | null;
   attempts: number;
   speed_bps: number;
+  range_start: number;
+  range_end: number | null;
+  range_if: string | null;
+  remote_total: number;
+  http_status: number | null;
 }
 
 export interface PublicJob {
@@ -62,6 +67,12 @@ export interface PublicJob {
   host: string;
   canPreview: boolean;
   fileExists: boolean;
+  isPartial: boolean;
+  rangeStart: number;
+  rangeEnd: number | null;
+  rangeIf: string | null;
+  remoteTotal: number;
+  httpStatus: number | null;
 }
 
 export interface AppSettings {
@@ -98,4 +109,10 @@ export interface AddDownloadInput {
   supportsRanges: boolean;
   etag: string | null;
   lastModified: string | null;
+}
+
+export interface PartialRangeOptions {
+  start: number;
+  end: number | null;
+  ifRange: string | null;
 }

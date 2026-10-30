@@ -140,6 +140,11 @@ describe("URL and job normalization", () => {
       completed_at: null,
       attempts: 1,
       speed_bps: 0,
+      range_start: 0,
+      range_end: null,
+      range_if: null,
+      remote_total: 1000,
+      http_status: 206,
     };
     const job = toPublicJob(row, { speedBps: 125, fileExists: true });
     expect(job.progress).toBe(25);

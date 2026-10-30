@@ -50,6 +50,32 @@ try {
     await browser.client.evaluate("document.querySelector('#detailDialog')?.close()");
   }
 
+  await browser.client.click("#rangeToggle");
+  assert.equal(
+    await browser.client.evaluate<boolean>(
+      "document.querySelector('#rangePanel').hidden",
+    ),
+    false,
+  );
+  await browser.client.evaluate(`
+    document.querySelector('#rangeStartInput').value = '1234';
+    document.querySelector('#rangeEndInput').value = '5678';
+    document.querySelector('#rangeEndInput').dispatchEvent(new Event('input', { bubbles: true }));
+  `);
+  assert.equal(
+    await browser.client.evaluate(
+      "document.querySelector('#rangePreview').textContent",
+    ),
+    "bytes=1234-5678",
+  );
+  await browser.client.click("#rangeToggle");
+  assert.equal(
+    await browser.client.evaluate<boolean>(
+      "document.querySelector('#rangePanel').hidden",
+    ),
+    true,
+  );
+
   await browser.client.click("#themeBtn");
   await Bun.sleep(400);
   assert.equal(

@@ -14,12 +14,15 @@ import type {
   AppSettings,
   DownloadRow,
   JobStatus,
+  PartialRangeOptions,
   PublicJob,
 } from "./types";
 import {
   DOWNLOAD_HEADERS,
   headerNumber,
+  isPartialRange,
   parseContentRange,
+  partialFileName,
   sanitizeFileName,
   sleepWithSignal,
   toPublicJob,
@@ -281,10 +284,39 @@ export class DownloadEngine {
       lastModified: string | null;
     },
     downloadDir: string,
+    range?: PartialRangeOptions,
   ): PublicJob {
     mkdirSync(downloadDir, { recursive: true });
-    const fileName = sanitizeFileName(probe.fileName, "download");
-    const filePath = this.uniqueNewPath(join(downloadDir, fileName));
+    const rangeStart = Math.max(0, Math.round(range?.start ?? 0));
+    const rangeEnd = range?.end == null ? null : Math.round(range.end);
+    const partial = isPartialRange(rangeStart, rangeEnd);
+    const remoteTotal = Math.max(0, probe.totalBytes);
+
+    if (partial && remoteTotal > 0) {
+      if (rangeStart >= remoteTotal) {
+        throw new Error("The range start is beyond the end of the remote file.");
+      }
+      if (rangeEnd !== null && rangeEnd >= remoteTotal) {
+        throw new Error("The range end is beyond the end of the remote file.");
+      }
+    }
+
+    let segmentTotal = remoteTotal;
+    if (partial) {
+      if (remoteTotal > 0) {
+        const end = Math.min(rangeEnd ?? remoteTotal - 1, remoteTotal - 1);
+        segmentTotal = Math.max(0, end - rangeStart + 1);
+      } else if (rangeEnd !== null) {
+        segmentTotal = Math.max(0, rangeEnd - rangeStart + 1);
+      } else {
+        segmentTotal = 0;
+      }
+    }
+
+    const baseName = partial
+      ? partialFileName(probe.fileName, rangeStart, rangeEnd)
+      : sanitizeFileName(probe.fileName, "download");
+    const filePath = this.uniqueNewPath(join(downloadDir, baseName));
     const now = Date.now();
     const row = this.store.insertDownload({
       id: randomUUID(),
@@ -293,10 +325,14 @@ export class DownloadEngine {
       fileName: basename(filePath),
       filePath,
       contentType: probe.contentType,
-      totalBytes: probe.totalBytes,
+      totalBytes: segmentTotal,
       supportsRanges: probe.supportsRanges,
       etag: probe.etag,
       lastModified: probe.lastModified,
+      rangeStart: partial ? rangeStart : 0,
+      rangeEnd: partial ? rangeEnd : null,
+      rangeIf: partial ? (range?.ifRange ?? null) : null,
+      remoteTotal,
       now,
     });
     this.reserved.add(filePath);
@@ -549,6 +585,8 @@ export class DownloadEngine {
             etag: runtime.job.etag,
             last_modified: runtime.job.last_modified,
             supports_ranges: runtime.job.supports_ranges,
+            remote_total: runtime.job.remote_total,
+            http_status: runtime.job.http_status,
             speed_bps: 0,
           });
           if (final) this.emitJob(final);
@@ -566,10 +604,16 @@ export class DownloadEngine {
     restart = false,
   ): Promise<{ response: Response; start: number }> {
     const headers: Record<string, string> = { ...DOWNLOAD_HEADERS };
-    if (downloaded > 0) {
-      headers.Range = `bytes=${downloaded}-`;
-      if (job.etag) headers["If-Range"] = job.etag;
-      else if (job.last_modified) headers["If-Range"] = job.last_modified;
+    const partial = isPartialRange(job.range_start, job.range_end);
+    const requestStart = job.range_start + downloaded;
+    const needsRange = partial || downloaded > 0;
+
+    if (needsRange) {
+      headers.Range = `bytes=${requestStart}-${
+        job.range_end !== null ? job.range_end : ""
+      }`;
+      const validator = job.range_if || job.etag || job.last_modified;
+      if (validator) headers["If-Range"] = validator;
     }
 
     const response = await fetch(job.final_url || job.url, {
@@ -578,15 +622,28 @@ export class DownloadEngine {
       signal,
     });
 
-    if (downloaded > 0 && response.status === 200) {
-      // The server ignored the range or the entity changed; start over cleanly.
+    if (needsRange && response.status === 200) {
+      if (partial) {
+        await response.body?.cancel();
+        throw new DownloadFailure(
+          "The server ignored the Range request or the file validator changed (HTTP 200 instead of 206 Partial Content).",
+          200,
+        );
+      }
+      // A normal in-progress download can restart from zero when the server
+      // ignores its range or the entity changed.
       return { response, start: 0 };
     }
 
-    if (downloaded > 0 && response.status === 206) {
+    if (needsRange && response.status === 206) {
       const range = parseContentRange(response.headers.get("content-range"));
-      if (!range || range.start !== downloaded) {
+      if (!range || range.start !== requestStart) {
         await response.body?.cancel();
+        if (partial) {
+          throw new DownloadFailure(
+            "The server returned an unexpected byte range for this partial download.",
+          );
+        }
         if (restart) {
           throw new DownloadFailure(
             "The server returned an unexpected byte range. Try again.",
@@ -601,6 +658,7 @@ export class DownloadEngine {
 
   private async run(job: DownloadRow, runtime: Runtime): Promise<void> {
     const partPath = partPathFor(job.file_path);
+    const partial = isPartialRange(job.range_start, job.range_end);
     await mkdir(dirname(job.file_path), { recursive: true });
 
     let downloaded = Math.max(0, job.downloaded_bytes);
@@ -656,15 +714,20 @@ export class DownloadEngine {
         );
         await response.body?.cancel();
         if (remoteTotal !== null) {
-          total = remoteTotal;
-          job.total_bytes = total;
+          job.remote_total = remoteTotal;
+          if (!partial) {
+            total = remoteTotal;
+            job.total_bytes = total;
+          }
         }
         if (total > 0 && downloaded >= total) {
           await this.finishSuccess(job, runtime, downloaded, total);
           return;
         }
         throw new DownloadFailure(
-          "The remote file changed and the partial download can't be resumed. Remove it and start again.",
+          partial
+            ? "The requested range can't be satisfied. The file may have changed, or the range is outside the remote file."
+            : "The remote file changed and the partial download can't be resumed. Remove it and start again.",
           416,
         );
       }
@@ -688,18 +751,42 @@ export class DownloadEngine {
         response.headers.get("content-range"),
       );
       if (response.status === 206) {
-        if (contentRange?.total != null) total = contentRange.total;
+        if (contentRange) {
+          if (contentRange.total != null) {
+            job.remote_total = contentRange.total;
+          }
+          if (partial) {
+            total = Math.max(
+              0,
+              contentRange.end - job.range_start + 1,
+            );
+          } else {
+            total = contentRange.total ?? total;
+          }
+        }
         job.supports_ranges = 1;
       } else {
         const length = headerNumber(response.headers.get("content-length"));
-        if (length > 0) total = length;
+        if (length > 0) {
+          total = length;
+          job.remote_total = length;
+        }
         if (downloaded > 0) job.supports_ranges = 0;
       }
       job.total_bytes = total;
+      job.http_status = response.status;
       if (response.headers.get("etag")) job.etag = response.headers.get("etag");
       if (response.headers.get("last-modified")) {
         job.last_modified = response.headers.get("last-modified");
       }
+      this.store.patch(job.id, {
+        total_bytes: job.total_bytes,
+        supports_ranges: job.supports_ranges,
+        remote_total: job.remote_total,
+        http_status: job.http_status,
+        etag: job.etag,
+        last_modified: job.last_modified,
+      });
 
       const handle = await open(partPath, "a");
       const reader = response.body.getReader();
@@ -727,6 +814,8 @@ export class DownloadEngine {
               downloaded_bytes: downloaded,
               total_bytes: total,
               speed_bps: speed,
+              remote_total: job.remote_total,
+              http_status: job.http_status,
             });
           }
           if (now - runtime.lastEmit >= 220) {
@@ -764,6 +853,8 @@ export class DownloadEngine {
           etag: job.etag,
           last_modified: job.last_modified,
           supports_ranges: job.supports_ranges,
+          remote_total: job.remote_total,
+          http_status: job.http_status,
         });
       } else if (latest) {
         this.store.patch(job.id, {
@@ -772,6 +863,8 @@ export class DownloadEngine {
           etag: job.etag,
           last_modified: job.last_modified,
           supports_ranges: job.supports_ranges,
+          remote_total: job.remote_total,
+          http_status: job.http_status,
         });
       }
       throw error;
@@ -808,6 +901,8 @@ export class DownloadEngine {
       etag: job.etag,
       last_modified: job.last_modified,
       supports_ranges: job.supports_ranges,
+      remote_total: job.remote_total,
+      http_status: job.http_status,
       status: "completed",
       error: null,
       completed_at: Date.now(),

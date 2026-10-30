@@ -16,6 +16,9 @@ The detail view includes a range-enabled player, resumable progress, metadata an
 - **Resumable downloads** with HTTP `Range`, `If-Range`, `ETag` and `Last-Modified`
   validation. Pausing, restarting the server, or a dropped connection keeps the partial
   file and continues from the correct byte.
+- **Explicit 206 range downloads** — enter a start/end byte and an optional `If-Range`
+  validator. Downlink sends `Range`, requires a `206 Partial Content` response, and saves
+  only that segment with a descriptive filename.
 - **Live preview** for video, audio and images — including while a file is still
   downloading. The local preview endpoint supports byte ranges, so seeking works as the
   file grows.
@@ -78,8 +81,11 @@ PORT=8080 DOWNLOAD_DIR="$HOME/Downloads/Video" bun start
 1. Paste a **direct** HTTP/HTTPS file URL, for example a `.mp4`, `.webm`, `.mp3`,
    `.jpg`, `.zip` or PDF.
 2. Press **Add download**, or **Preview** to inspect and stream the remote file first.
-3. While downloading you can pause, resume, preview the partial file, or cancel.
-4. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
+3. For a partial transfer, open **206 range**, enter the starting byte, an optional end
+   byte and an optional `If-Range` validator. The download expects `206 Partial Content`
+   and saves only the requested segment.
+4. While downloading you can pause, resume, preview the partial file, or cancel.
+5. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
 
 The **Preview** button and the detail player use `/api/downloads/:id/preview`, which
 supports `Range` requests against the `.part` file while a download is in progress. This
@@ -92,7 +98,7 @@ playable by every browser.
 | ------ | ---------------------------------- | ------------------------------------ |
 | GET    | `/api/health`                      | Engine health and save folder.       |
 | GET    | `/api/downloads`                   | Snapshot: jobs, summary, settings.   |
-| POST   | `/api/downloads`                   | Add `{ url }` or `{ urls: [] }`.     |
+| POST   | `/api/downloads`                   | Add `{ url }` or `{ urls: [] }`; optional `range`. |
 | POST   | `/api/inspect`                     | Probe a URL and create a preview.    |
 | GET    | `/api/events`                      | SSE stream of job/settings changes.  |
 | GET    | `/api/downloads/:id`               | Single job.                          |
@@ -125,6 +131,11 @@ playable by every browser.
    validator changed, the partial file is truncated and the download restarts from byte 0.
 5. When the response ends, the part file is renamed to its final name and the job is
    marked completed.
+
+For an explicit segment, the same mechanism sends `Range: bytes=<start>-<end>` with an
+optional `If-Range`. A `200 OK` response is rejected in this mode rather than silently
+saving the whole file; the UI displays the observed `206 Partial Content` status, the
+requested range and the original remote size.
 
 The fixture tests in `tests/` exercise the range parser, safe filename handling and the
 resume behavior against a local range-capable server.
