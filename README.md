@@ -81,6 +81,33 @@ the SQLite database lives in `./data/downlink.db`.
 PORT=8080 DOWNLOAD_DIR="$HOME/Downloads/Video" bun start
 ```
 
+## Marketing website
+
+The product site lives in [`website/`](website) and is published at
+**<https://403access.github.io/downlink/>**.
+
+It is a dependency-free static site. GitHub Actions builds it with
+[`scripts/build-site.ts`](scripts/build-site.ts) on every relevant push to `main`,
+then deploys the resulting `dist/` directory to GitHub Pages. Pull requests touching
+the site also run the build, without deploying.
+
+```bash
+bun run site:build   # template + minify CSS/JS into dist/
+bun run site:dev     # build and preview on http://127.0.0.1:4173
+```
+
+The build injects the repository version and commit, copies the current app
+screenshots from the repository root, and generates `sitemap.xml`, `robots.txt`,
+`404.html`, and `.nojekyll`. `SITE_URL` overrides the canonical URL used in metadata
+and the sitemap:
+
+```bash
+SITE_URL=https://example.com bun run site:build
+```
+
+To deploy to a different host, serve the generated `dist/` directory as static files.
+No server-side runtime is required.
+
 ## Using the app
 
 1. Paste a **direct** HTTP/HTTPS file URL, for example a `.mp4`, `.webm`, `.mp3`,
@@ -229,6 +256,10 @@ scripts/browser/
   pause.ts       isolated pause/resume E2E with Range + If-Range assertions
   curl.ts        isolated cURL import, private preview and private download test
   smoke.ts       desktop/mobile/theme screenshots and console-error check
+scripts/build-site.ts   marketing site build (templates, minify, sitemap)
+scripts/serve-site.ts   local preview server for dist/
+website/         marketing site source (static HTML/CSS/JS + assets)
+.github/workflows/marketing-site.yml  builds and deploys the site to Pages
 downloads/       default save folder
 data/            SQLite database (created at runtime)
 artifacts/       generated browser screenshots (ignored)

@@ -11,7 +11,9 @@
     "test": "bun test",
     "test:e2e": "bun scripts/browser/pause.ts",
     "test:curl": "bun scripts/browser/curl.ts",
-    "test:browser": "bun scripts/browser/smoke.ts"
+    "test:browser": "bun scripts/browser/smoke.ts",
+    "site:build": "bun scripts/build-site.ts",
+    "site:dev": "bun run site:build && bun scripts/serve-site.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Downlink — downloads that pick up where they left off</title>
+    <meta
+      name="description"
+      content="Downlink is a local-first, resumable media and file downloader built with pure Bun. True HTTP range resume, live preview, cURL import, a persistent queue, and zero runtime dependencies."
+    />
+    <meta name="author" content="Downlink" />
+    <meta name="theme-color" content="#070a0a" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="__SITE_URL__/" />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+    <link rel="stylesheet" href="./styles.css" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Downlink" />
+    <meta property="og:title" content="Downlink — downloads that pick up where they left off" />
+    <meta
+      property="og:description"
+      content="A local-first media and file downloader with true resumable transfers, live preview, cURL import, and a queue that survives restarts. Built with pure Bun."
+    />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/assets/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Downlink — local-first resumable downloader" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Downlink — downloads that pick up where they left off" />
+    <meta
+      name="twitter:description"
+      content="True resumable downloads, live preview, cURL import, and a queue that survives restarts. Local-first, built with pure Bun."
+    />
+    <meta name="twitter:image" content="__SITE_URL__/assets/og.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Downlink",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "description": "A local-first, resumable media and file downloader built with pure Bun.",
+        "url": "__SITE_URL__/",
+        "downloadUrl": "https://github.com/403access/downlink",
+        "softwareVersion": "__VERSION__",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-header>
+      <div class="container header-inner">
+        <a class="brand" href="./" aria-label="Downlink home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Downlink</strong>
+            <small>local downloader</small>
+          </span>
+        </a>
+
+        <nav class="site-nav" aria-label="Main navigation" data-nav>
+          <a href="#features">Features</a>
+          <a href="#resume">Resume</a>
+          <a href="#curl">cURL import</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="header-actions">
+          <a
+            class="button button-ghost button-small header-github"
+            href="https://github.com/403access/downlink"
+            rel="noopener"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.56 2.35 1.11 2.92.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.4 9.4 0 0 1 12 6.97c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.12 10.12 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" fill="currentColor" stroke="none"/></svg>
+            <span>GitHub</span>
+          </a>
+          <a class="button button-lime button-small" href="#quickstart">Run it locally</a>
+          <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" data-menu-toggle>
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="container hero-inner">
+          <p class="eyebrow reveal">
+            <span class="pulse" aria-hidden="true"></span>
+            Local-first · Pure Bun<span class="eyebrow-extra"> · Zero runtime dependencies</span>
+          </p>
+          <h1 class="reveal">
+            Downloads that pick up<br />
+            <span class="accent">right where they left off.</span>
+          </h1>
+          <p class="hero-lede reveal">
+            Downlink is a local-first media and file downloader with true resumable transfers,
+            live preview, a cURL importer, and a queue that survives restarts. No accounts.
+            No cloud. No telemetry.
+          </p>
+          <div class="hero-actions reveal">
+            <a class="button button-lime" href="#quickstart">
+              Start downloading
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
+            </a>
+            <a class="button button-ghost" href="https://github.com/403access/downlink" rel="noopener">
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.56 2.35 1.11 2.92.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.4 9.4 0 0 1 12 6.97c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.12 10.12 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" fill="currentColor" stroke="none"/></svg>
+              View source
+            </a>
+          </div>
+          <ul class="hero-meta reveal" aria-label="Platform support">
+            <li>macOS</li>
+            <li>Linux</li>
+            <li>Windows</li>
+            <li><span aria-hidden="true">·</span> Bun 1.2+</li>
+            <li><span aria-hidden="true">·</span> 1.66 MB demo, fully local</li>
+          </ul>
+
+          <div class="showcase reveal" data-showcase>
+            <div class="showcase-bar">
+              <div class="shot-tabs" role="tablist" aria-label="Product screenshots">
+                <button class="shot-tab is-active" type="button" role="tab" aria-selected="true" data-shot="library" data-caption="A queue that keeps state, speed, and history in one local view.">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><rect x="4" y="4" width="6" height="6" rx="1.4"/><rect x="14" y="4" width="6" height="6" rx="1.4"/><rect x="4" y="14" width="6" height="6" rx="1.4"/><rect x="14" y="14" width="6" height="6" rx="1.4"/></svg>
+                  Library
+                </button>
+                <button class="shot-tab" type="button" role="tab" aria-selected="false" data-shot="player" data-caption="Preview video, audio, and images — even while the file is still arriving.">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="m8 5 11 7-11 7Z"/></svg>
+                  Player
+                </button>
+                <button class="shot-tab" type="button" role="tab" aria-selected="false" data-shot="curl" data-caption="Paste a browser request. Headers, range, and validators come along for the ride.">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 4l-4 16"/></svg>
+                  cURL import
+                </button>
+                <button class="shot-tab" type="button" role="tab" aria-selected="false" data-shot="light" data-caption="A light theme that follows you, not a settings account.">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+                  Light
+                </button>
+              </div>
+              <span class="live-chip"><span class="pulse" aria-hidden="true"></span> localhost</span>
+            </div>
+
+            <div class="browser-frame">
+              <div class="browser-chrome" aria-hidden="true">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-amber"></span>
+                <span class="dot dot-green"></span>
+                <span class="address">127.0.0.1:3000</span>
+                <span class="chrome-note">private · on your machine</span>
+              </div>
+              <div class="shot-stage">
+                <img
+                  src="./assets/library.png"
+                  alt="Downlink library showing a completed download, live stats, and a resumable queue."
+                  class="shot is-active"
+                  width="1440"
+                  height="900"
+                  data-shot-img="library"
+                  fetchpriority="high"
+                />
+                <img
+                  src="./assets/player.png"
+                  alt="Downlink detail view with a range-enabled video player, metadata, and file actions."
+                  class="shot"
+                  width="1440"
+                  height="900"
+                  data-shot-img="player"
+                  loading="lazy"
+                  hidden
+                />
+                <img
+                  src="./assets/curl.png"
+                  alt="Downlink cURL import dialog with a live parsed request preview and imported header chips."
+                  class="shot"
+                  width="1440"
+                  height="900"
+                  data-shot-img="curl"
+                  loading="lazy"
+                  hidden
+                />
+                <img
+                  src="./assets/light.png"
+                  alt="Downlink in light theme with the same local download library."
+                  class="shot"
+                  width="1440"
+                  height="900"
+                  data-shot-img="light"
+                  loading="lazy"
+                  hidden
+                />
+              </div>
+            </div>
+            <p class="shot-caption" data-shot-caption>
+              A queue that keeps state, speed, and history in one local view.
+            </p>
+
+            <div class="float-chip float-chip-left" aria-hidden="true">
+              <span class="chip-icon chip-icon-lime">
+                <svg viewBox="0 0 24 24"><path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
+              </span>
+              <span><strong>HTTP Range</strong><small>206 on resume</small></span>
+            </div>
+            <div class="float-chip float-chip-right" aria-hidden="true">
+              <span class="chip-icon chip-icon-cyan">
+                <svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z"/></svg>
+              </span>
+              <span><strong>Live preview</strong><small>while downloading</small></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stat-band" aria-label="Downlink at a glance">
+        <div class="container stat-grid">
+          <div class="stat reveal">
+            <strong>0</strong>
+            <span>runtime dependencies</span>
+          </div>
+          <div class="stat reveal">
+            <strong>206</strong>
+            <span>range-aware resume</span>
+          </div>
+          <div class="stat reveal">
+            <strong>1–10</strong>
+            <span>concurrent downloads</span>
+          </div>
+          <div class="stat reveal">
+            <strong>100%</strong>
+            <span>local by design</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">The toolkit</p>
+            <h2>Everything you need to finish the download.</h2>
+            <p class="lede">
+              Not a browser tab that forgets what happened. Downlink owns the transfer from
+              first byte to final filename, and keeps the receipts in SQLite.
+            </p>
+          </div>
+
+          <div class="features-grid">
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 19h16"/></svg>
+              </span>
+              <h3>True resumable transfers</h3>
+              <p>
+                Pause, quit, reboot, or lose the connection. Downlink continues from the exact
+                byte with <code>Range</code>, <code>If-Range</code>, ETag, and Last-Modified
+                validation.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m10 9 5 3-5 3Z"/></svg>
+              </span>
+              <h3>Preview while it downloads</h3>
+              <p>
+                Stream video, audio, and images from the growing <code>.part</code> file. The
+                local preview endpoint speaks byte ranges, so seeking works mid-transfer.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/><path d="M14 4l-4 16"/></svg>
+              </span>
+              <h3>cURL import with a live preview</h3>
+              <p>
+                Paste “Copy as cURL” and watch the parsed URL, range, and headers appear as you
+                type. Referer, cookies, and auth carry into every request.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/><path d="m17 14 3 3-3 3"/></svg>
+              </span>
+              <h3>Explicit 206 range downloads</h3>
+              <p>
+                Enter a start and end byte with an optional validator. Downlink requires a
+                <code>206 Partial Content</code> and saves only that segment.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 18V8M10 18V5M16 18v-7M22 18V3"/><path d="M2 21h20"/></svg>
+              </span>
+              <h3>Live telemetry over SSE</h3>
+              <p>
+                Per-file speed, ETA, progress, combined throughput, and queue counts pushed
+                straight to the UI. No polling, no stale numbers.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
+              </span>
+              <h3>A queue that remembers</h3>
+              <p>
+                Interrupted jobs are recovered after a restart. Pause all, resume all, retry,
+                cancel, clear history, and set a fair global speed limit.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 6.5h6l2 2h8v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M2 10.5h20"/></svg>
+              </span>
+              <h3>Filenames handled properly</h3>
+              <p>
+                <code>Content-Disposition</code> and <code>filename*</code> support, safe
+                sanitization, MIME-based extension inference, and collision-free
+                <code>name (1).ext</code> paths.
+              </p>
+            </article>
+
+            <article class="feature-card reveal">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>
+              </span>
+              <h3>Nothing leaves the machine</h3>
+              <p>
+                Direct-file downloads, a local SQLite database, and no accounts, analytics,
+                cloud service, or external database. Your files stay yours.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="resume">
+        <div class="container split">
+          <div class="split-copy reveal">
+            <p class="eyebrow">Resume, for real</p>
+            <h2>The connection can drop. The download doesn’t.</h2>
+            <p class="lede">
+              A download writes to <code>&lt;filename&gt;.part</code> and stores its byte count
+              in SQLite. On resume, Downlink asks for exactly what’s missing and rewrites the
+              final file only when it’s complete.
+            </p>
+            <ul class="check-list">
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Sends <code>Range: bytes=&lt;downloaded&gt;-</code> with the stored validator.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Appends a <code>206</code>. Falls back to a clean restart if the file changed.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Rejects a <code>200</code> in explicit 206 mode instead of saving the whole file.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Renames <code>.part</code> to the final name and marks the job complete.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="split-visual reveal">
+            <div class="terminal">
+              <div class="terminal-bar">
+                <span class="dot dot-red"></span><span class="dot dot-amber"></span><span class="dot dot-green"></span>
+                <span class="terminal-title">resume exchange</span>
+              </div>
+              <pre><code><span class="t-dim"># paused at byte 432,144,384</span>
+<span class="t-lime">GET</span> /video.mp4
+<span class="t-key">Range:</span> bytes=432144384-
+<span class="t-key">If-Range:</span> "6aa88fff-310fd51d"
+<span class="t-key">Referer:</span> https://example.com/watch
+
+<span class="t-cyan">206 Partial Content</span>
+<span class="t-key">Content-Range:</span> bytes 432144384-823121180/823121181
+<span class="t-key">ETag:</span> "6aa88fff-310fd51d"
+
+<span class="t-dim">↳ appending 390,976,797 bytes to</span>
+<span class="t-dim">  video.mp4.part</span>
+<span class="t-lime">✓ download.mp4 complete</span></code></pre>
+            </div>
+            <div class="visual-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 19h16"/></svg>
+              <span><strong>Restart-safe by default.</strong> The queue recovers automatically after a crash or reboot.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="curl">
+        <div class="container split split-reverse">
+          <div class="split-copy reveal">
+            <p class="eyebrow">Bring the request</p>
+            <h2>Keep the context that makes a link work.</h2>
+            <p class="lede">
+              Some files need a referer, a cookie, or a signed header. Copy the request from
+              DevTools → Network → <em>Copy as cURL</em>, then paste it into Downlink.
+            </p>
+            <ul class="check-list">
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Parses URL, method, range, and <code>If-Range</code> automatically.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Live preview of the parsed request before anything is committed.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Headers persist with the job, so pause and resume still authenticate.</span>
+              </li>
+              <li>
+                <span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span>
+                <span>Unsafe or managed headers are filtered instead of blindly replayed.</span>
+              </li>
+            </ul>
+            <p class="legal-note">
+              Downlink is a direct-file downloader. It does not bypass authentication, DRM, or
+              anti-bot protections. Only download content you have permission to save.
+            </p>
+          </div>
+
+          <div class="split-visual reveal">
+            <div class="terminal terminal-curl">
+              <div class="terminal-bar">
+                <span class="dot dot-red"></span><span class="dot dot-amber"></span><span class="dot dot-green"></span>
+                <span class="terminal-title">pasted from devtools</span>
+                <button class="copy-button" type="button" data-copy>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre><code><span class="t-lime">curl</span> --url 'https://example.com/video.mp4' \
+  -H 'referer: https://example.com/watch' \
+  -H 'range: bytes=432144384-823121180' \
+  -H 'if-range: "6aa88fff-310fd51d"' \
+  -H 'user-agent: Mozilla/5.0'</code></pre>
+            </div>
+            <div class="parsed-card">
+              <div class="parsed-head">
+                <span class="parsed-title">Parsed request</span>
+                <span class="parsed-badge">live</span>
+              </div>
+              <dl class="parsed-grid">
+                <div><dt>URL</dt><dd>example.com/video.mp4</dd></div>
+                <div><dt>Range</dt><dd>432,144,384 → 823,121,180</dd></div>
+                <div><dt>If-Range</dt><dd>“6aa88fff-310fd51d”</dd></div>
+                <div><dt>Headers</dt><dd>4 imported</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section privacy-section">
+        <div class="container">
+          <div class="privacy-panel reveal">
+            <div class="privacy-copy">
+              <p class="eyebrow">Private by architecture</p>
+              <h2>Your files never leave your machine.</h2>
+              <p class="lede">
+                There is no account to create and no server in the middle. Downlink binds to
+                localhost, writes to a folder you choose, and remembers state in a single
+                SQLite file.
+              </p>
+            </div>
+            <div class="privacy-grid">
+              <div class="privacy-item">
+                <span class="privacy-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 4.6 3.2 8.2 7.5 10 4.3-1.8 7.5-5.4 7.5-10V6Z"/><path d="m8.5 12 2.4 2.4 4.6-4.8"/></svg></span>
+                <h3>No telemetry</h3>
+                <p>No analytics, tracking pixels, or crash reporting.</p>
+              </div>
+              <div class="privacy-item">
+                <span class="privacy-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+                <h3>No cloud</h3>
+                <p>Requests go from your machine to the source. That’s it.</p>
+              </div>
+              <div class="privacy-item">
+                <span class="privacy-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
+                <h3>One local database</h3>
+                <p>Queue, settings, and history live in <code>data/downlink.db</code>.</p>
+              </div>
+              <div class="privacy-item">
+                <span class="privacy-icon"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+                <h3>Localhost by default</h3>
+                <p>The server binds to <code>127.0.0.1</code> unless you say otherwise.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="quickstart">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Quickstart</p>
+            <h2>Running in under a minute.</h2>
+            <p class="lede">
+              Downlink needs Bun 1.2 or newer. There is no framework, no build step for the app,
+              and no service to sign up for.
+            </p>
+          </div>
+
+          <div class="quickstart-grid">
+            <div class="quickstart-main reveal">
+              <div class="terminal terminal-quickstart">
+                <div class="terminal-bar">
+                  <span class="dot dot-red"></span><span class="dot dot-amber"></span><span class="dot dot-green"></span>
+                  <span class="terminal-title">terminal</span>
+                  <button class="copy-button" type="button" data-copy>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <pre><code><span class="t-dim"># clone the source</span>
+<span class="t-lime">git</span> clone https://github.com/403access/downlink.git
+<span class="t-lime">cd</span> downlink
+
+<span class="t-dim"># install dev types, then run</span>
+<span class="t-lime">bun</span> install
+<span class="t-lime">bun</span> run dev
+
+<span class="t-cyan">→ http://127.0.0.1:3000</span></code></pre>
+              </div>
+              <div class="quickstart-steps">
+                <div class="qs-step">
+                  <span class="qs-num">01</span>
+                  <div><h3>Paste a direct link</h3><p>MP4, WebM, MP3, FLAC, JPG, ZIP, PDF — anything served over HTTP or HTTPS.</p></div>
+                </div>
+                <div class="qs-step">
+                  <span class="qs-num">02</span>
+                  <div><h3>Preview or add to queue</h3><p>Inspect size, type, range support, and validators before committing.</p></div>
+                </div>
+                <div class="qs-step">
+                  <span class="qs-num">03</span>
+                  <div><h3>Pause whenever</h3><p>Quit the server, reboot, or lose Wi-Fi. Resume continues from the exact byte.</p></div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="quickstart-aside reveal" aria-label="Configuration">
+              <div class="aside-card">
+                <h3>Environment variables</h3>
+                <dl class="env-list">
+                  <div><dt><code>PORT</code></dt><dd><code>3000</code><span>HTTP port</span></dd></div>
+                  <div><dt><code>HOST</code></dt><dd><code>127.0.0.1</code><span>Bind address</span></dd></div>
+                  <div><dt><code>DOWNLOAD_DIR</code></dt><dd><code>./downloads</code><span>Save folder</span></dd></div>
+                  <div><dt><code>DATA_DIR</code></dt><dd><code>./data</code><span>SQLite location</span></dd></div>
+                </dl>
+              </div>
+              <div class="aside-card aside-note">
+                <span class="aside-icon">
+                  <svg viewBox="0 0 24 24"><path d="M12 8v5"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 4.2 3 17a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/></svg>
+                </span>
+                <p>
+                  Only expose the server on a trusted LAN. Imported headers can contain
+                  cookies and tokens, and <code>data/</code> stores them.
+                </p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="faq">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">FAQ</p>
+            <h2>Good questions, straight answers.</h2>
+          </div>
+          <div class="faq-list reveal">
+            <details>
+              <summary>Does Downlink download from YouTube, TikTok, or streaming sites?</summary>
+              <p>
+                No. Downlink is a <strong>direct-file</strong> downloader for URLs that return a
+                file. HLS and DASH manifests (<code>.m3u8</code>, <code>.mpd</code>) are detected
+                and rejected rather than saved incorrectly. It does not bypass authentication,
+                DRM, or anti-bot protections.
+              </p>
+            </details>
+            <details>
+              <summary>What happens if I quit mid-download?</summary>
+              <p>
+                The <code>.part</code> file and its byte count stay on disk in SQLite. When you
+                start Downlink again, interrupted jobs are recovered, and resume sends a range
+                request for the remaining bytes. If the remote file changed, Downlink starts it
+                over cleanly.
+              </p>
+            </details>
+            <details>
+              <summary>Where do my files go?</summary>
+              <p>
+                By default, to <code>./downloads</code> next to the app. You can change the save
+                folder in Settings or with <code>DOWNLOAD_DIR</code>. Queue state and history
+                live in <code>./data/downlink.db</code>.
+              </p>
+            </details>
+            <details>
+              <summary>Is there a hosted or cloud version?</summary>
+              <p>
+                No. Downlink is designed to run on your own machine and bind to localhost.
+                Hosting it would mean uploading your downloads, headers, and cookies somewhere
+                else — the opposite of the point.
+              </p>
+            </details>
+            <details>
+              <summary>Does it work on Windows?</summary>
+              <p>
+                Yes. Downlink runs on macOS, Linux, and Windows with Bun 1.2+. “Reveal” uses
+                <code>open</code>, <code>explorer</code>, or <code>xdg-open</code> depending on
+                the platform.
+              </p>
+            </details>
+            <details>
+              <summary>How do I download a link that needs cookies or a referer?</summary>
+              <p>
+                Use <strong>Import cURL</strong>. In your browser, open DevTools → Network,
+                right-click the request, and choose <em>Copy → Copy as cURL</em>. Paste it into
+                Downlink; the URL, range, and safe request headers are imported and stored with
+                the job.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section">
+        <div class="container">
+          <div class="cta-panel reveal">
+            <div>
+              <p class="eyebrow">Ready when you are</p>
+              <h2>Grab the link. Keep the file.</h2>
+              <p class="lede">A downloader that respects your bandwidth, your files, and your privacy.</p>
+            </div>
+            <div class="cta-actions">
+              <a class="button button-lime" href="https://github.com/403access/downlink" rel="noopener">
+                Get Downlink
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="icon"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+              </a>
+              <a class="button button-ghost" href="https://github.com/403access/downlink#readme" rel="noopener">Read the docs</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="./" aria-label="Downlink home">
+            <span class="brand-mark brand-mark-small" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" />
+              </svg>
+            </span>
+            <span class="brand-copy"><strong>Downlink</strong><small>local downloader</small></span>
+          </a>
+          <p>Local-first, resumable downloads built with pure Bun.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="https://github.com/403access/downlink" rel="noopener">GitHub</a>
+          <a href="https://github.com/403access/downlink#readme" rel="noopener">README</a>
+          <a href="https://github.com/403access/downlink/issues" rel="noopener">Issues</a>
+          <a href="#quickstart">Quickstart</a>
+        </nav>
+      </div>
+      <div class="container footer-bottom">
+        <p>© <span data-year>2026</span> Downlink. Downloads stay on your machine.</p>
+        <p class="footer-meta">
+          <span data-version>v__VERSION__</span>
+          <span aria-hidden="true">·</span>
+          <span data-commit>__COMMIT__</span>
+          <span aria-hidden="true">·</span>
+          <span>Built and deployed with GitHub</span>
+        </p>
+      </div>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
