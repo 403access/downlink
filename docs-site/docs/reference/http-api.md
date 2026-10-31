@@ -150,7 +150,9 @@ Probes a URL without adding it to the queue.
 ### `GET /api/downloads/:id/preview`
 
 Inline, range-enabled playback of the completed file or the growing `.part` file. Supports
-`Range` and `HEAD`.
+`Range` and `HEAD`. While the job is active the response stays open and new bytes are streamed
+as they are written, so playback follows the download. The response's `Content-Range` total is
+the expected final size.
 
 ### `GET /api/downloads/:id/file`
 

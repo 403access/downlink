@@ -39,7 +39,8 @@ artifacts/       generated browser screenshots (ignored)
 | --- | --- |
 | `server/context.ts` | Store/engine/config bootstrapping and shared constants. |
 | `server/add.ts` | URL, range, and header add pipeline. |
-| `server/files.ts` | Local file and `Range` responses. |
+| `server/files.ts` | Local file, `Range`, and growing-file preview responses. |
+| `server/stream.ts` | Live byte stream that follows a `.part` file as it grows. |
 | `server/preview.ts` | Signed remote-preview token and proxy. |
 | `server/sse.ts` | Event stream. |
 | `server/http.ts` | JSON and error helpers. |

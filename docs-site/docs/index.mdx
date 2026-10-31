@@ -27,7 +27,8 @@ bun run dev
   `Range` and `If-Range` with the stored ETag or `Last-Modified` validator and continues from
   the exact byte.
 - **Preview while it downloads.** Stream video, audio, and images from the growing `.part`
-  file through a range-enabled local endpoint.
+  file through a range-enabled local endpoint. Playback follows the download, so the player
+  keeps going as new bytes arrive instead of stopping at the initial buffer.
 - **cURL import with a live preview.** Paste “Copy as cURL” and Downlink extracts the URL,
   byte range, and safe request headers before anything is committed.
 - **Explicit 206 range downloads.** Enter a start and end byte, require a

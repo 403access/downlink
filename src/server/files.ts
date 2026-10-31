@@ -10,6 +10,18 @@ import {
 } from "../utils";
 import { store } from "./context";
 import { HttpError, jobId, json } from "./http";
+import { growingFileStream } from "./stream";
+
+interface ServeFileOptions {
+  /** Stream bytes that have not been written yet instead of ending at EOF. */
+  live?: boolean;
+  /** The size the file is expected to reach. */
+  expectedSize?: number;
+  /** Whether the writer can still append data. */
+  isLive?: () => boolean;
+  /** Final path to use if the partial file is renamed mid-stream. */
+  fallbackPath?: string;
+}
 
 function jobAndFile(id: string): { job: DownloadRow; path: string } {
   const job = store.getDownload(id);
@@ -26,23 +38,11 @@ function jobAndFile(id: string): { job: DownloadRow; path: string } {
   return { job, path };
 }
 
-async function serveFile(
-  req: Request,
-  path: string,
+function baseHeaders(
   contentType: string,
   fileName: string,
   disposition: "inline" | "attachment",
-): Promise<Response> {
-  let size: number;
-  try {
-    const info = await stat(path);
-    if (!info.isFile()) throw new Error("not a file");
-    size = info.size;
-  } catch {
-    return json({ error: "File not found." }, 404);
-  }
-
-  const range = parseRangeHeader(req.headers.get("range"), size);
+): Headers {
   const headers = new Headers({
     "Content-Type": contentType,
     "Accept-Ranges": "bytes",
@@ -53,6 +53,62 @@ async function serveFile(
   if (disposition === "inline") {
     headers.set("Content-Security-Policy", "sandbox; default-src 'none'");
   }
+  return headers;
+}
+
+async function serveFile(
+  req: Request,
+  path: string,
+  contentType: string,
+  fileName: string,
+  disposition: "inline" | "attachment",
+  options: ServeFileOptions = {},
+): Promise<Response> {
+  let size: number;
+  try {
+    const info = await stat(path);
+    if (!info.isFile()) throw new Error("not a file");
+    size = info.size;
+  } catch {
+    return json({ error: "File not found." }, 404);
+  }
+
+  const headers = baseHeaders(contentType, fileName, disposition);
+
+  if (options.live) {
+    const expected = Math.max(size, options.expectedSize ?? 0);
+    if (expected > 0) {
+      const requested = req.headers.get("range");
+      const range = parseRangeHeader(requested, expected);
+      if (range === "invalid") {
+        headers.set("Content-Range", `bytes */${expected}`);
+        return new Response(null, { status: 416, headers });
+      }
+
+      const start = range ? range.start : 0;
+      const end = range ? range.end : expected - 1;
+      const length = end - start + 1;
+      if (range) {
+        headers.set("Content-Range", `bytes ${start}-${end}/${expected}`);
+      }
+      headers.set("Content-Length", String(length));
+
+      if (req.method === "HEAD") {
+        return new Response(null, { status: range ? 206 : 200, headers });
+      }
+
+      return new Response(
+        growingFileStream(path, start, end, {
+          signal: req.signal,
+          isLive: options.isLive,
+          fallbackPath: options.fallbackPath,
+        }),
+        { status: range ? 206 : 200, headers },
+      );
+    }
+  }
+
+  const range = parseRangeHeader(req.headers.get("range"), size);
 
   if (range === "invalid") {
     headers.set("Content-Range", `bytes */${size}`);
@@ -81,6 +137,14 @@ function fileNameFromJob(job: DownloadRow): string {
   return job.file_name || "download";
 }
 
+/** Whether the job may still write more bytes to its `.part` file. */
+function stillWriting(job: DownloadRow): boolean {
+  const current = store.getDownload(job.id);
+  return Boolean(
+    current && ["queued", "downloading", "paused"].includes(current.status),
+  );
+}
+
 export function previewResponse(req: Request): Promise<Response> | Response {
   try {
     const { job, path } = jobAndFile(jobId(req));
@@ -88,12 +152,27 @@ export function previewResponse(req: Request): Promise<Response> | Response {
     if (!["video", "audio", "image"].includes(kind)) {
       return json({ error: "This file type cannot be previewed." }, 415);
     }
+    const partial = job.range_start > 0 || job.range_end !== null;
+    const live = job.status !== "completed" && kind !== "image";
     return serveFile(
       req,
       path,
       contentTypeForFile(job.file_name, job.content_type),
       fileNameFromJob(job),
       "inline",
+      {
+        // Images are loaded as a single resource, so a growing stream would
+        // keep them waiting. Media elements can follow a live byte stream.
+        live,
+        expectedSize:
+          job.total_bytes > 0
+            ? job.total_bytes
+            : partial
+              ? 0
+              : job.remote_total,
+        isLive: () => stillWriting(job),
+        fallbackPath: live ? job.file_path : undefined,
+      },
     );
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, error.status);

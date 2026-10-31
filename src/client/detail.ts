@@ -36,6 +36,7 @@ export function selectDetail(
   if (nextId !== state.detailId) {
     state.detailId = nextId;
     state.detailMediaKey = "";
+    state.detailMediaRetryAt = 0;
     state.detailActionsKey = "";
     resetDetailMedia();
     if (nextId) els.detailPanel.scrollTop = 0;
@@ -176,6 +177,7 @@ export function updateDetail(job: Job): void {
 
   renderDetailMeta(job);
   syncDetailMedia(job);
+  recoverDetailMedia(job);
 
   const actionsKey = `${job.status}|${job.fileExists}|${job.canPreview}|${job.kind}`;
   if (state.detailActionsKey !== actionsKey) {
@@ -228,60 +230,191 @@ export function renderDetailMeta(job: Job): void {
   els.detailMeta.innerHTML = rows.join("");
 }
 
+function previewUrl(job: Job, version?: number): string {
+  const suffix = version == null ? "" : `?v=${version}`;
+  return `/api/preview/${encodeURIComponent(job.id)}${suffix}`;
+}
+
+type MediaElement = HTMLVideoElement | HTMLAudioElement;
+
+function attachDetailMedia(
+  media: MediaElement,
+  job: Job,
+  preserve: boolean,
+): void {
+  const time =
+    preserve && Number.isFinite(media.currentTime) ? media.currentTime : 0;
+  const wasPlaying = preserve && !media.paused;
+  media.src = previewUrl(job, job.downloadedBytes);
+  media.load();
+  if (!preserve) return;
+
+  const restore = (): void => {
+    media.removeEventListener("loadedmetadata", restore);
+    try {
+      if (time > 0.1) media.currentTime = time;
+    } catch {
+      /* the new file may be shorter than the old playback position */
+    }
+    if (wasPlaying) void media.play().catch(() => undefined);
+  };
+  media.addEventListener("loadedmetadata", restore);
+}
+
+function badgeFor(
+  job: Job,
+  completed: string,
+  active: string,
+  paused: string,
+  waiting: string,
+  partial: string,
+): string {
+  if (job.status === "completed") return completed;
+  if (job.status === "downloading") return active;
+  if (job.status === "paused") return paused;
+  if (job.status === "queued") return waiting;
+  return partial;
+}
+
+function previewNote(job: Job, kind: "video" | "audio"): string {
+  const noun = kind === "video" ? "video" : "audio";
+  let note: string;
+  if (job.status === "completed") {
+    note = `Playing from the finished ${noun} file on your disk.`;
+  } else if (job.status === "downloading") {
+    note = `Streaming from the growing file on disk. Playback follows the download and may briefly buffer while new bytes arrive.`;
+  } else if (job.status === "paused") {
+    note = `The download is paused. You can play the bytes already on disk; playback continues when you resume.`;
+  } else if (job.status === "queued") {
+    note = `Waiting for a free slot. The player will start as soon as bytes arrive.`;
+  } else {
+    note = `The download stopped. You can still play the ${noun} bytes that were saved.`;
+  }
+  if (job.isPartial && job.rangeStart > 0) {
+    note +=
+      " This is a byte-range segment that starts mid-file, so it may not contain the container header a player needs.";
+  }
+  return note;
+}
+
 export function syncDetailMedia(job: Job): void {
-  const key = `${job.id}|${job.status}|${job.fileExists}|${job.kind}`;
-  if (state.detailMediaKey === key) return;
-  state.detailMediaKey = key;
-  resetDetailMedia();
+  // Keep the source stable when a download completes. The live stream simply
+  // reaches the end of the file, and reloading here would send the player back
+  // to the start. Images reload once so a partial image becomes complete.
+  const statusKey = job.kind === "image" ? job.status : "";
+  const key = `${job.id}|${job.fileExists}|${job.canPreview}|${job.kind}|${statusKey}`;
+  const changed = state.detailMediaKey !== key;
+  if (changed) {
+    state.detailMediaKey = key;
+    state.detailMediaRetryAt = 0;
+    resetDetailMedia();
+  }
 
   if (!job.fileExists || !job.canPreview) {
-    els.detailPlayerBadge.textContent = "NO PREVIEW";
-    els.detailPlaceholder.hidden = false;
-    const label = els.detailPlaceholder.querySelector("span");
-    if (label) {
-      label.textContent =
+    if (changed) {
+      els.detailPlayerBadge.textContent = "NO PREVIEW";
+      els.detailPlaceholder.hidden = false;
+      const label = els.detailPlaceholder.querySelector("span");
+      if (label) {
+        label.textContent =
+          job.status === "queued"
+            ? "Preview starts with the download"
+            : "No inline preview for this type";
+      }
+      els.detailPreviewNote.textContent =
         job.status === "queued"
-          ? "Preview starts with the download"
-          : "No inline preview for this type";
+          ? "The player becomes available as soon as the first bytes arrive."
+          : "You can still reveal the file on disk or save a copy.";
     }
-    els.detailPreviewNote.textContent =
-      job.status === "queued"
-        ? "The player becomes available as soon as the first bytes arrive."
-        : "You can still reveal the file on disk or save a copy.";
     return;
   }
 
-  const previewUrl = `/api/preview/${encodeURIComponent(job.id)}`;
+  if (changed) {
+    if (job.kind === "video") {
+      els.detailVideo.src = previewUrl(job);
+      els.detailVideo.hidden = false;
+      els.detailVideo.load();
+    } else if (job.kind === "audio") {
+      els.detailAudio.src = previewUrl(job);
+      els.detailAudio.hidden = false;
+      els.detailAudio.load();
+    } else if (job.kind === "image") {
+      els.detailImage.src = previewUrl(job);
+      els.detailImage.hidden = false;
+    }
+  }
+
   if (job.kind === "video") {
-    els.detailVideo.src = previewUrl;
-    els.detailVideo.hidden = false;
-    els.detailVideo.load();
-    els.detailPlayerBadge.textContent =
-      job.status === "completed" ? "LOCAL PREVIEW" : "PARTIAL PREVIEW";
-    els.detailPreviewNote.textContent =
-      job.status === "completed"
-        ? "Playing from the finished file on your disk."
-        : "Live preview of the bytes downloaded so far. Seeking may be limited until the file finishes.";
+    els.detailPlayerBadge.textContent = badgeFor(
+      job,
+      "LOCAL PREVIEW",
+      "LIVE PREVIEW",
+      "PAUSED PREVIEW",
+      "WAITING FOR BYTES",
+      "PARTIAL PREVIEW",
+    );
+    els.detailPreviewNote.textContent = previewNote(job, "video");
   } else if (job.kind === "audio") {
-    els.detailAudio.src = previewUrl;
-    els.detailAudio.hidden = false;
-    els.detailAudio.load();
-    els.detailPlayerBadge.textContent =
-      job.status === "completed" ? "LOCAL AUDIO" : "PARTIAL AUDIO";
-    els.detailPreviewNote.textContent =
-      job.status === "completed"
-        ? "Playing from the finished audio file on your disk."
-        : "Preview the audio downloaded so far. The rest arrives as the download continues.";
+    els.detailPlayerBadge.textContent = badgeFor(
+      job,
+      "LOCAL AUDIO",
+      "LIVE AUDIO",
+      "PAUSED AUDIO",
+      "WAITING FOR BYTES",
+      "PARTIAL AUDIO",
+    );
+    els.detailPreviewNote.textContent = previewNote(job, "audio");
   } else if (job.kind === "image") {
-    els.detailImage.src = previewUrl;
-    els.detailImage.hidden = false;
-    els.detailPlayerBadge.textContent =
-      job.status === "completed" ? "LOCAL IMAGE" : "PARTIAL IMAGE";
+    els.detailPlayerBadge.textContent = badgeFor(
+      job,
+      "LOCAL IMAGE",
+      "PARTIAL IMAGE",
+      "PARTIAL IMAGE",
+      "WAITING FOR BYTES",
+      "PARTIAL IMAGE",
+    );
     els.detailPreviewNote.textContent =
       job.status === "completed"
         ? "Showing the finished image on your disk."
         : "The image may appear incomplete until the download finishes.";
   }
+}
+
+/**
+ * Recover a media preview when its live stream ends unexpectedly (for example
+ * because the connection idled out while the download was paused). The new
+ * request continues from the bytes that have arrived since.
+ */
+export function recoverDetailMedia(job: Job): void {
+  if (!job.canPreview || job.status !== "downloading") return;
+  if (job.isPartial && job.rangeStart > 0) return;
+  const media =
+    job.kind === "video"
+      ? els.detailVideo
+      : job.kind === "audio"
+        ? els.detailAudio
+        : null;
+
+  if (media) {
+    if (media.hidden || !media.getAttribute("src")) return;
+    if (!media.error && !media.ended) return;
+  } else if (job.kind === "image") {
+    if (!els.detailImage.hidden) return;
+  } else {
+    return;
+  }
+
+  const now = Date.now();
+  if (now - state.detailMediaRetryAt < 3_000) return;
+  state.detailMediaRetryAt = now;
+
+  if (media) {
+    attachDetailMedia(media, job, true);
+    return;
+  }
+  els.detailImage.src = previewUrl(job, job.downloadedBytes);
+  els.detailImage.hidden = false;
+  els.detailPlaceholder.hidden = true;
 }
 
 export function detailActions(job: Job): string {
@@ -345,10 +478,18 @@ export function bindDetailEvents(): void {
     media.addEventListener("error", () => {
       if (!media.getAttribute("src") || media.hidden) return;
       const job = state.detailId ? state.jobs.get(state.detailId) : null;
+      if (job?.isPartial && job.rangeStart > 0) {
+        els.detailPreviewNote.textContent =
+          "This byte-range segment starts mid-file, so it is missing the container header a player needs. Download the file from byte 0 to preview it.";
+        return;
+      }
+      if (job?.status === "completed") {
+        els.detailPreviewNote.textContent =
+          "Your browser cannot play this codec. Save a copy and open it in a local media player.";
+        return;
+      }
       els.detailPreviewNote.textContent =
-        job?.status === "completed"
-          ? "Your browser cannot play this codec. Save a copy and open it in a local media player."
-          : "This partial file is not playable yet. The preview unlocks as more data arrives.";
+        "Waiting for more bytes. The preview reconnects automatically as the download advances.";
     });
   }
 

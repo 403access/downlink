@@ -61,7 +61,9 @@ longer matched, so appending would have produced a corrupt file. A server that i
 - Some codecs and containers are not decodable by every browser.
 - MP4 files with metadata at the end may not seek until the tail arrives.
 - A growing `.part` file is not a finished container; the browser may refuse it until enough
-  bytes exist.
+  bytes exist. The player reconnects automatically while the download is active.
+- A 206 range that starts mid-file may not include the container header at all. Download the
+  file from byte 0 (or the complete file) if you need a playable preview.
 
 The download is still valid. Open the completed file in a local player.
 

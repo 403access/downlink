@@ -21,9 +21,11 @@ to the page.
 
 ## Preview while downloading
 
-Select a library card and the preview dock streams from the growing `.part` file. The endpoint
-`/api/downloads/:id/preview` supports `Range` requests, so seeking works mid-transfer instead
-of waiting for completion.
+Select a library card and the preview dock streams from the growing `.part` file. The
+endpoint `/api/downloads/:id/preview` keeps the media response open and appends bytes as
+they arrive, so playback follows the download instead of stopping at the current end of the
+file. `Range` requests are supported too, so seeking inside the bytes already on disk works
+mid-transfer.
 
 This works best for:
 
@@ -31,9 +33,10 @@ This works best for:
 - **WebM** and audio containers the browser decodes natively,
 - images, which render as soon as enough bytes arrive.
 
-Some codecs and containers are not playable by every browser, and a file whose metadata is at
-the end may not seek until the tail arrives. The download is still valid — open the completed
-file in a local player.
+Some codecs and containers are not playable by every browser, and a file whose metadata is
+at the end may not seek until the tail arrives. The download is still valid — open the
+completed file in a local player. A 206 range that starts mid-file may be missing the
+container header entirely, so it cannot be previewed without reconstructing the file.
 
 ## Preview vs download
 

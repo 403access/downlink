@@ -16,6 +16,7 @@ export const state = {
   detailDismissed: false,
   dockView: "empty" as "empty" | "detail" | "inspect",
   detailMediaKey: "",
+  detailMediaRetryAt: 0,
   detailActionsKey: "",
   inspectProbe: null as Probe | null,
   inspectPreviewUrl: null as string | null,

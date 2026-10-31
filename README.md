@@ -26,8 +26,9 @@ Selecting a download opens a docked preview with a range-enabled player, resumab
   only that segment with a descriptive filename.
 - **Live preview** for video, audio and images — including while a file is still
   downloading. Select any card to show its player, progress and metadata in the docked
-  detail panel. The local preview endpoint supports byte ranges, so seeking works as the
-  file grows.
+  detail panel. The preview endpoint streams the `.part` file as it grows, so playback
+  follows the download instead of stopping at the bytes that existed when the player
+  loaded.
 - **Inspect before downloading** — probe a remote URL, see its size, type, range support
   and validators, and stream a signed remote preview in the same side panel without
   committing to a download.
@@ -142,9 +143,12 @@ No server-side runtime is required.
    a card shows its player, progress and metadata in the right-hand dock.
 6. Completed cards expose “save a copy”, reveal in Finder/Explorer, and delete.
 
-The docked detail player uses `/api/preview/:id`, which supports `Range` requests against
-the `.part` file while a download is in progress. This works best for MP4 files with
-metadata at the front; some codecs/containers are not playable by every browser.
+The docked detail player uses `/api/preview/:id`, which streams the growing `.part` file
+while a download is in progress. The player keeps its connection open and receives new
+bytes as they land on disk, so it can keep playing instead of stopping at the point the
+download had reached when the preview opened. This works best for MP4 files with metadata
+at the front; some codecs/containers are not playable by every browser. A 206 range that
+starts mid-file may not contain the container header and cannot be previewed.
 
 ### Importing a browser request
 
@@ -250,7 +254,8 @@ src/
   server/        API helpers split by responsibility
     context.ts     store/engine/config bootstrapping
     add.ts         URL/range/header add pipeline
-    files.ts       local file + Range responses
+    files.ts       local file, Range and growing preview responses
+    stream.ts      live byte stream that follows a .part file
     preview.ts     signed remote-preview token/proxy
     sse.ts         event stream
     http.ts        JSON/error helpers
@@ -271,6 +276,7 @@ tests/
   engine.test.ts
   probe.test.ts
   curl.test.ts
+  stream.test.ts
 scripts/browser/
   cdp.ts         shared headless-Chrome / DevTools Protocol helpers
   pause.ts       isolated pause/resume E2E with Range + If-Range assertions
