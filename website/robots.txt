@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: __SITE_URL__/sitemap.xml
+Sitemap: __SITE_URL__/docs/sitemap.xml

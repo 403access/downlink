@@ -1,0 +1,65 @@
+---
+title: Overview
+sidebar_label: Overview
+slug: /overview
+description: What Downlink is, how it stores downloads, and where to start reading.
+---
+
+Downlink is a local-first, resumable media and file downloader built with **pure Bun**. The
+web UI is served by `Bun.serve`, the API runs on the same server, and download state lives in
+SQLite via `bun:sqlite`. There is no framework, no client runtime to install, and no service
+in the middle.
+
+It is a **direct-file** downloader: give it an HTTP or HTTPS URL that returns a file and it
+owns the transfer from the first byte to the final filename.
+
+```bash
+git clone https://github.com/403access/downlink.git
+cd downlink
+bun install
+bun run dev
+# → http://127.0.0.1:3000
+```
+
+## What it does
+
+- **True resumable transfers.** Pause, quit, reboot, or lose the connection. Resume sends
+  `Range` and `If-Range` with the stored ETag or `Last-Modified` validator and continues from
+  the exact byte.
+- **Preview while it downloads.** Stream video, audio, and images from the growing `.part`
+  file through a range-enabled local endpoint.
+- **cURL import with a live preview.** Paste “Copy as cURL” and Downlink extracts the URL,
+  byte range, and safe request headers before anything is committed.
+- **Explicit 206 range downloads.** Enter a start and end byte, require a
+  `206 Partial Content`, and save only that segment.
+- **A queue that remembers.** Interrupted jobs are recovered after a restart, with pause all,
+  resume all, retry, cancel, history clearing, and a fair global speed limit.
+- **Live telemetry over SSE.** Per-file speed, ETA, progress, combined throughput, and queue
+  counts pushed to the UI without polling.
+- **Nothing leaves the machine.** No accounts, analytics, telemetry, or external database.
+
+## The mental model
+
+| Piece | Responsibility | Location |
+| --- | --- | --- |
+| UI | Vanilla TypeScript modules, served by Bun's HTML pipeline | `src/client/` |
+| API | JSON routes, SSE stream, preview and file responses | `src/server.ts`, `src/server/` |
+| Engine | Scheduler, concurrency, speed limiting, resume decisions | `src/engine.ts` |
+| Probe | `HEAD` / one-byte `Range` inspection of remote files | `src/probe.ts` |
+| Store | Queue, settings, history, and byte counts | `data/downlink.db` |
+| Files | Partial downloads and completed files | `./downloads` by default |
+
+A download writes to `<filename>.part` and records its byte count in SQLite. When the response
+ends, the part file is renamed to its final name and the job is marked completed.
+
+## Where to go next
+
+- [Installation](/getting-started/installation) — requirements and setup.
+- [Quickstart](/getting-started/quickstart) — your first resumable download.
+- [Resumable downloads](/guides/resumable-downloads) — the full resume contract.
+- [HTTP API](/reference/http-api) — every route and payload.
+
+:::note Legal
+Downlink does not bypass authentication, DRM, or anti-bot protections. Only download content
+you have permission to save.
+:::

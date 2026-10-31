@@ -3,6 +3,7 @@
  * Run `bun run site:build` first (or use `bun run site:dev`).
  */
 
+import { stat } from "node:fs/promises";
 import { join, normalize, resolve } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -35,6 +36,36 @@ const server = Bun.serve({
       return new Response(file, {
         headers: { "cache-control": "no-store" },
       });
+    }
+
+    // Docusaurus writes directory-style routes: /docs/guides/x/index.html.
+    // Serve the index for extensionless directory paths, like GitHub Pages.
+    try {
+      if ((await stat(target)).isDirectory()) {
+        const index = Bun.file(join(target, "index.html"));
+        if (await index.exists()) {
+          return new Response(index, {
+            headers: { "cache-control": "no-store" },
+          });
+        }
+      }
+    } catch {
+      // Fall through to the 404 handling below.
+    }
+
+    // Prefer the docs 404 for anything under /docs/.
+    const docs404 = join(dist, "docs", "404.html");
+    if (pathname.startsWith("/docs/")) {
+      try {
+        if ((await stat(docs404)).isFile()) {
+          return new Response(Bun.file(docs404), {
+            status: 404,
+            headers: { "cache-control": "no-store" },
+          });
+        }
+      } catch {
+        // Fall through.
+      }
     }
 
     return new Response(Bun.file(join(dist, "404.html")), {

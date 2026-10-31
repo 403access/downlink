@@ -4,6 +4,7 @@
   "private": true,
   "description": "A local-first, resumable media downloader built with pure Bun.",
   "type": "module",
+  "workspaces": ["docs-site"],
   "scripts": {
     "dev": "bun --hot src/server.ts",
     "start": "bun src/server.ts",
@@ -12,8 +13,11 @@
     "test:e2e": "bun scripts/browser/pause.ts",
     "test:curl": "bun scripts/browser/curl.ts",
     "test:browser": "bun scripts/browser/smoke.ts",
-    "site:build": "bun scripts/build-site.ts",
-    "site:dev": "bun run site:build && bun scripts/serve-site.ts"
+    "site:build": "bun scripts/build-site.ts && bun run docs:build",
+    "site:dev": "SITE_URL=http://127.0.0.1:4173 bun run site:build && bun scripts/serve-site.ts",
+    "docs:dev": "bun run --cwd docs-site start",
+    "docs:build": "bun run --cwd docs-site build",
+    "docs:serve": "bun run --cwd docs-site serve"
   },
   "devDependencies": {
     "@types/bun": "latest",

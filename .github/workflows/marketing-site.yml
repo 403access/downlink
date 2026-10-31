@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "website/**"
+      - "docs-site/**"
       - "scripts/build-site.ts"
       - "scripts/serve-site.ts"
       - "screenshot.png"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - "website/**"
+      - "docs-site/**"
       - "scripts/build-site.ts"
       - "scripts/serve-site.ts"
       - "screenshot.png"

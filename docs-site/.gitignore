@@ -1,0 +1,5 @@
+.docusaurus/
+build/
+node_modules/
+static/img/library.png
+static/img/player.png

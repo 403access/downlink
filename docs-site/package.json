@@ -1,0 +1,32 @@
+{
+  "name": "@downlink/docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentation for Downlink, built with Docusaurus.",
+  "scripts": {
+    "sync-assets": "bun scripts/sync-assets.ts",
+    "start": "bun run sync-assets && DOCS_BASE_URL=/ SITE_URL=http://127.0.0.1:4000 docusaurus start --port 4000",
+    "build": "bun run sync-assets && docusaurus build --out-dir ../dist/docs",
+    "serve": "docusaurus serve --port 4001",
+    "clear": "docusaurus clear",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "@mdx-js/react": "^3.1.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@docusaurus/tsconfig": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "@types/react": "^19.2.0",
+    "prism-react-renderer": "^2.4.1",
+    "typescript": "^5.9.0"
+  },
+  "browserslist": {
+    "production": [">0.5%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+  }
+}

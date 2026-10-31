@@ -81,6 +81,23 @@ the SQLite database lives in `./data/downlink.db`.
 PORT=8080 DOWNLOAD_DIR="$HOME/Downloads/Video" bun start
 ```
 
+## Documentation website
+
+The documentation lives in [`docs-site/`](docs-site) and is built with
+[Docusaurus](https://docusaurus.io). It is published alongside the marketing site at
+**<https://403access.github.io/downlink/docs/>** and shares the marketing site's design
+system (dark panels, lime accent, mono labels, and the same type scale).
+
+```bash
+bun run docs:dev     # docs dev server on http://127.0.0.1:4000
+bun run docs:build   # build the docs into dist/docs/
+bun run docs:serve   # preview the built docs on http://127.0.0.1:4001
+```
+
+The docs content is plain Markdown/MDX under `docs-site/docs/`, with the sidebar in
+`docs-site/sidebars.ts` and the theme in `docs-site/src/`. The landing page,
+navbar, and footer are React components that reuse the marketing site's visual language.
+
 ## Marketing website
 
 The product site lives in [`website/`](website) and is published at
@@ -92,14 +109,15 @@ then deploys the resulting `dist/` directory to GitHub Pages. Pull requests touc
 the site also run the build, without deploying.
 
 ```bash
-bun run site:build   # template + minify CSS/JS into dist/
-bun run site:dev     # build and preview on http://127.0.0.1:4173
+bun run site:build   # template + minify CSS/JS into dist/, then build docs into dist/docs/
+bun run site:dev     # build both and preview on http://127.0.0.1:4173
 ```
 
 The build injects the repository version and commit, copies the current app
 screenshots from the repository root, and generates `sitemap.xml`, `robots.txt`,
 `404.html`, and `.nojekyll`. `SITE_URL` overrides the canonical URL used in metadata
-and the sitemap:
+and the sitemap; the docs build derives its own base path (`/docs/`) from the same
+variable:
 
 ```bash
 SITE_URL=https://example.com bun run site:build
@@ -160,7 +178,7 @@ paste, or change the command.
 | POST   | `/api/downloads/:id/retry`         | Retry failed/canceled job.           |
 | POST   | `/api/downloads/:id/cancel`        | Cancel and remove partial data.      |
 | POST   | `/api/downloads/:id/reveal`        | Reveal file/folder in file manager.  |
-| DELETE | `/api/downloads/:id?files=true`    | Remove job and file(s).              |
+| DELETE | `/api/downloads/:id?files=false`   | Remove job; keep files (`files=false`). |
 | GET    | `/api/downloads/:id/preview`       | Range-enabled inline preview.        |
 | GET    | `/api/downloads/:id/file`          | Range-enabled attachment download.   |
 | GET    | `/api/preview/:id`                 | Short alias for preview.             |
@@ -259,7 +277,10 @@ scripts/browser/
 scripts/build-site.ts   marketing site build (templates, minify, sitemap)
 scripts/serve-site.ts   local preview server for dist/
 website/         marketing site source (static HTML/CSS/JS + assets)
-.github/workflows/marketing-site.yml  builds and deploys the site to Pages
+docs-site/       documentation site (Docusaurus, shares the marketing design)
+  docs/          Markdown/MDX documentation pages
+  src/           custom navbar, footer, landing page, and theme CSS
+.github/workflows/marketing-site.yml  builds and deploys both sites to Pages
 downloads/       default save folder
 data/            SQLite database (created at runtime)
 artifacts/       generated browser screenshots (ignored)
