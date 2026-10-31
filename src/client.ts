@@ -1,4 +1,4 @@
-import { parseCurl } from "./curl";
+import { parseCurl, type ParsedCurl } from "./curl";
 import type { RequestHeader } from "./types";
 
 type JobStatus =
@@ -128,6 +128,9 @@ const state = {
   batchMode: false,
   rangeMode: false,
   importedHeaders: [] as RequestHeader[],
+  curlPreviewValid: false,
+  curlPreviewTimer: null as number | null,
+  curlParsed: null as ParsedCurl | null,
   notifications:
     localStorage.getItem("downlink.notifications") === "true",
   confirmResolve: null as ((value: boolean) => void) | null,
@@ -165,6 +168,8 @@ const els = {
   curlInput: byId<HTMLTextAreaElement>("curlInput"),
   curlError: byId("curlError"),
   curlImportBtn: byId<HTMLButtonElement>("curlImportBtn"),
+  curlPreviewState: byId("curlPreviewState"),
+  curlPreviewBody: byId("curlPreviewBody"),
   addBtn: byId<HTMLButtonElement>("addBtn"),
   inspectBtn: byId<HTMLButtonElement>("inspectBtn"),
   pasteBtn: byId<HTMLButtonElement>("pasteBtn"),
@@ -1714,11 +1719,8 @@ function updateAddButtonLabel(): void {
       : "Add download";
 }
 
-function renderImportedHeaders(): void {
-  const headers = state.importedHeaders;
-  els.headersPanel.hidden = headers.length === 0;
-  els.headersCount.textContent = String(headers.length);
-  els.headerChips.innerHTML = headers
+function headerChipsMarkup(headers: RequestHeader[]): string {
+  return headers
     .map((header) => {
       const preview =
         header.value.length > 140
@@ -1731,6 +1733,13 @@ function renderImportedHeaders(): void {
     .join("");
 }
 
+function renderImportedHeaders(): void {
+  const headers = state.importedHeaders;
+  els.headersPanel.hidden = headers.length === 0;
+  els.headersCount.textContent = String(headers.length);
+  els.headerChips.innerHTML = headerChipsMarkup(headers);
+}
+
 function setImportedHeaders(headers: RequestHeader[]): void {
   state.importedHeaders = headers;
   renderImportedHeaders();
@@ -1738,6 +1747,89 @@ function setImportedHeaders(headers: RequestHeader[]): void {
 
 function clearImportedHeaders(): void {
   setImportedHeaders([]);
+}
+
+function setCurlPreviewState(
+  label: string,
+  mode: "waiting" | "ready" | "error",
+): void {
+  els.curlPreviewState.textContent = label;
+  els.curlPreviewState.className = `curl-preview-state is-${mode}`;
+}
+
+function renderCurlPreview(parsed: ParsedCurl): void {
+  const range = parsed.range
+    ? `bytes=${parsed.range.start}-${parsed.range.end ?? ""}`
+    : "Full file";
+  const headers = headerChipsMarkup(parsed.headers);
+  const warnings = parsed.warnings
+    .map((warning) => `<span>${esc(warning)}</span>`)
+    .join("");
+  els.curlPreviewBody.innerHTML = `
+    <div class="curl-request-line">
+      <span class="curl-method">${esc(parsed.method)}</span>
+      <code>${esc(parsed.url)}</code>
+    </div>
+    <div class="curl-preview-facts">
+      <div class="curl-preview-fact"><span>Range</span><strong title="${esc(range)}">${esc(range)}</strong></div>
+      <div class="curl-preview-fact"><span>If-Range</span><strong title="${esc(parsed.ifRange ?? "")}">${esc(parsed.ifRange ?? "—")}</strong></div>
+      <div class="curl-preview-fact"><span>Headers</span><strong>${parsed.headers.length}</strong></div>
+    </div>
+    ${
+      headers
+        ? `<div class="header-chips curl-preview-headers">${headers}</div>`
+        : ""
+    }
+    ${
+      warnings
+        ? `<div class="curl-warnings"><strong>Notes</strong>${warnings}</div>`
+        : ""
+    }
+  `;
+  setCurlPreviewState("Ready", "ready");
+  state.curlPreviewValid = true;
+  els.curlImportBtn.disabled = false;
+  els.curlError.hidden = true;
+}
+
+function renderCurlPreviewError(message: string, empty = false): void {
+  state.curlPreviewValid = false;
+  state.curlParsed = null;
+  els.curlImportBtn.disabled = true;
+  els.curlError.hidden = true;
+  if (empty) {
+    setCurlPreviewState("Waiting", "waiting");
+    els.curlPreviewBody.innerHTML = `<p class="curl-preview-empty">Paste or type a cURL command to preview the URL, Range, If-Range and headers before importing.</p>`;
+    return;
+  }
+  setCurlPreviewState("Check command", "error");
+  els.curlPreviewBody.innerHTML = `<p class="curl-preview-empty">${esc(message)}</p>`;
+}
+
+function updateCurlPreview(immediate = false): void {
+  if (state.curlPreviewTimer) {
+    window.clearTimeout(state.curlPreviewTimer);
+    state.curlPreviewTimer = null;
+  }
+  const run = (): void => {
+    state.curlPreviewTimer = null;
+    const value = els.curlInput.value.trim();
+    if (!value) {
+      renderCurlPreviewError("", true);
+      return;
+    }
+    try {
+      const parsed = parseCurl(value);
+      state.curlParsed = parsed;
+      renderCurlPreview(parsed);
+    } catch (error) {
+      renderCurlPreviewError(
+        error instanceof Error ? error.message : "That cURL command could not be parsed.",
+      );
+    }
+  };
+  if (immediate) run();
+  else state.curlPreviewTimer = window.setTimeout(run, 120);
 }
 
 function looksLikeCurl(text: string): boolean {
@@ -1749,13 +1841,16 @@ function openCurlDialog(text = ""): void {
   els.curlError.textContent = "";
   if (text) els.curlInput.value = text;
   if (!els.curlDialog.open) els.curlDialog.showModal();
+  updateCurlPreview(true);
   els.curlInput.focus();
 }
 
 function importCurlCommand(): void {
   els.curlError.hidden = true;
+  updateCurlPreview(true);
+  if (!state.curlPreviewValid) return;
   try {
-    const parsed = parseCurl(els.curlInput.value);
+    const parsed = state.curlParsed ?? parseCurl(els.curlInput.value);
     if (state.batchMode) setBatchMode(false);
     els.urlInput.value = parsed.url;
     setImportedHeaders(parsed.headers);
@@ -2288,6 +2383,10 @@ function bindEvents(): void {
   els.curlForm.addEventListener("submit", (event) => {
     event.preventDefault();
     importCurlCommand();
+  });
+  els.curlInput.addEventListener("input", () => updateCurlPreview());
+  els.curlInput.addEventListener("paste", () => {
+    window.setTimeout(() => updateCurlPreview(true), 0);
   });
   els.clearHeadersBtn.addEventListener("click", () => clearImportedHeaders());
   els.inspectBtn.addEventListener("click", () => void inspectCurrentUrl());

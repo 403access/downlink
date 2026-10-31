@@ -139,11 +139,36 @@ async function main(): Promise<void> {
       `  -H 'if-range: ${ETAG}'`,
     ].join("\n");
 
-    await browser.client.click("#curlToggle");
     await browser.client.evaluate(`
-      document.querySelector('#curlInput').value = ${JSON.stringify(curl)};
-      document.querySelector('#curlImportBtn').click();
+      const data = new DataTransfer();
+      data.setData('text/plain', ${JSON.stringify(curl)});
+      const event = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'clipboardData', { value: data });
+      document.querySelector('#urlInput').dispatchEvent(event);
     `);
+    await Bun.sleep(300);
+    assert.equal(
+      await browser.client.evaluate<boolean>("document.querySelector('#curlDialog').open"),
+      true,
+    );
+    assert.equal(
+      await browser.client.evaluate("document.querySelector('#curlPreviewState').textContent"),
+      "Ready",
+    );
+    const previewText = await browser.client.evaluate<string>(
+      "document.querySelector('#curlPreviewBody').textContent",
+    );
+    assert.ok(previewText.includes("bytes=100000-199999"));
+    assert.ok(previewText.includes("x-api-key"));
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "document.querySelector('#curlImportBtn').disabled",
+      ),
+      false,
+    );
+    await browser.client.screenshot(join(root, "artifacts", "curl-live-preview.png"));
+
+    await browser.client.click("#curlImportBtn");
     await Bun.sleep(250);
 
     assert.equal(

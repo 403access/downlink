@@ -585,13 +585,28 @@
   -H 'if-range: &quot;etag-value&quot;'"
             ></textarea>
           </label>
+          <div class="curl-preview" id="curlPreview">
+            <div class="curl-preview-head">
+              <span class="request-headers-title">
+                <svg class="icon"><use href="#i-inspect" /></svg>
+                Live request preview
+              </span>
+              <span class="curl-preview-state is-waiting" id="curlPreviewState">Waiting</span>
+            </div>
+            <div class="curl-preview-body" id="curlPreviewBody">
+              <p class="curl-preview-empty">
+                Paste or type a cURL command to preview the URL, Range, If-Range and
+                headers before importing.
+              </p>
+            </div>
+          </div>
           <div class="form-error" id="curlError" role="alert" hidden></div>
         </div>
         <footer class="modal-footer">
           <span class="fine-print">Copy a request from DevTools → Network → “Copy as cURL”.</span>
           <div class="footer-buttons">
             <button class="button subtle" type="button" data-close="curlDialog">Cancel</button>
-            <button class="button primary" id="curlImportBtn" type="submit">
+            <button class="button primary" id="curlImportBtn" type="submit" disabled>
               <svg class="icon"><use href="#i-terminal" /></svg>
               Import request
             </button>

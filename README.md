@@ -16,10 +16,11 @@ The detail view includes a range-enabled player, resumable progress, metadata an
 - **Resumable downloads** with HTTP `Range`, `If-Range`, `ETag` and `Last-Modified`
   validation. Pausing, restarting the server, or a dropped connection keeps the partial
   file and continues from the correct byte.
-- **cURL import** — paste a “Copy as cURL” command and Downlink fills the URL, Range,
-  If-Range and request headers (referer, user-agent, authorization, cookies, etc.)
-  automatically. The imported headers are used for inspection, remote preview and every
-  subsequent download/resume request.
+- **cURL import with live preview** — paste a “Copy as cURL” command and Downlink fills
+  the URL, Range, If-Range and request headers (referer, user-agent, authorization,
+  cookies, etc.) automatically. The import window previews the parsed request as you type
+  or paste, before committing anything. Imported headers are used for inspection, remote
+  preview and every subsequent download/resume request.
 - **Explicit 206 range downloads** — enter a start/end byte and an optional `If-Range`
   validator. Downlink sends `Range`, requires a `206 Partial Content` response, and saves
   only that segment with a descriptive filename.
@@ -114,7 +115,8 @@ curl --url 'https://example.com/video.mp4' \
 The URL, byte range, `If-Range` validator and headers are filled in automatically.
 `Range` and `If-Range` become the 206 controls; all other safe headers are sent on
 inspection, preview and download requests, and are stored with the job so pause/resume
-continues to work.
+continues to work. The import window shows a live parsed request preview while you type,
+paste, or change the command.
 
 ## API overview
 

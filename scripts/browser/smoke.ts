@@ -76,7 +76,6 @@ try {
     true,
   );
 
-  await browser.client.click("#curlToggle");
   const curlCommand = [
     "curl --url 'https://example.com/video.mp4?x=1' \\",
     "  -H 'referer: https://example.com/' \\",
@@ -85,9 +84,59 @@ try {
     "  -H 'user-agent: Smoke Test'",
   ].join("\n");
   await browser.client.evaluate(`
-    document.querySelector('#curlInput').value = ${JSON.stringify(curlCommand)};
-    document.querySelector('#curlImportBtn').click();
+    const data = new DataTransfer();
+    data.setData('text/plain', ${JSON.stringify(curlCommand)});
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    document.querySelector('#urlInput').dispatchEvent(event);
   `);
+  await Bun.sleep(300);
+  assert.equal(
+    await browser.client.evaluate<boolean>("document.querySelector('#curlDialog').open"),
+    true,
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#curlInput').value"),
+    curlCommand,
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#curlPreviewState').textContent"),
+    "Ready",
+  );
+  assert.ok(
+    (
+      await browser.client.evaluate<string>(
+        "document.querySelector('#curlPreviewBody').textContent",
+      )
+    ).includes("bytes=1000-"),
+  );
+  assert.equal(
+    await browser.client.evaluate<boolean>(
+      "document.querySelector('#curlImportBtn').disabled",
+    ),
+    false,
+  );
+
+  const editedCurl = curlCommand.replace("Smoke Test", "Live Edit");
+  await browser.client.evaluate(`
+    const input = document.querySelector('#curlInput');
+    input.value = ${JSON.stringify(editedCurl)};
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  `);
+  await Bun.sleep(250);
+  assert.ok(
+    (
+      await browser.client.evaluate<string>(
+        "document.querySelector('#curlPreviewBody').textContent",
+      )
+    ).includes("Live Edit"),
+  );
+  assert.equal(
+    await browser.client.evaluate("document.querySelector('#curlPreviewState').textContent"),
+    "Ready",
+  );
+
+  await browser.client.click("#curlImportBtn");
   await Bun.sleep(250);
   assert.equal(
     await browser.client.evaluate<boolean>("document.querySelector('#curlDialog').open"),
