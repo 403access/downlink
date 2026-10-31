@@ -203,185 +203,292 @@
           </div>
         </header>
 
-        <section class="composer" aria-label="Add a download">
-          <div class="composer-glow"></div>
-          <form id="addForm" novalidate>
-            <div class="composer-row">
-              <div class="url-field">
-                <span class="url-field-icon"><svg class="icon"><use href="#i-link" /></svg></span>
-                <input
-                  id="urlInput"
-                  type="url"
-                  inputmode="url"
-                  placeholder="https://example.com/video.mp4"
-                  autocomplete="off"
+        <div class="workspace">
+          <div class="workspace-main">
+            <section class="composer" aria-label="Add a download">
+              <div class="composer-glow"></div>
+              <form id="addForm" novalidate>
+                <div class="composer-row">
+                  <div class="url-field">
+                    <span class="url-field-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                    <input
+                      id="urlInput"
+                      type="url"
+                      inputmode="url"
+                      placeholder="https://example.com/video.mp4"
+                      autocomplete="off"
+                      spellcheck="false"
+                      aria-label="Download URL"
+                    />
+                    <button class="field-action" id="pasteBtn" type="button" title="Paste from clipboard" aria-label="Paste from clipboard">
+                      <svg class="icon"><use href="#i-clipboard" /></svg>
+                    </button>
+                  </div>
+                  <div class="composer-actions">
+                    <button class="button subtle" id="inspectBtn" type="button">
+                      <svg class="icon"><use href="#i-inspect" /></svg>
+                      <span>Preview</span>
+                    </button>
+                    <button class="button primary" id="addBtn" type="submit">
+                      <svg class="icon"><use href="#i-plus" /></svg>
+                      <span>Add download</span>
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  id="batchInput"
+                  class="batch-input"
+                  rows="4"
+                  placeholder="Paste one URL per line…"
                   spellcheck="false"
-                  aria-label="Download URL"
-                />
-                <button class="field-action" id="pasteBtn" type="button" title="Paste from clipboard" aria-label="Paste from clipboard">
-                  <svg class="icon"><use href="#i-clipboard" /></svg>
-                </button>
-              </div>
-              <div class="composer-actions">
-                <button class="button subtle" id="inspectBtn" type="button">
-                  <svg class="icon"><use href="#i-inspect" /></svg>
-                  <span>Preview</span>
-                </button>
-                <button class="button primary" id="addBtn" type="submit">
-                  <svg class="icon"><use href="#i-plus" /></svg>
-                  <span>Add download</span>
-                </button>
-              </div>
-            </div>
-            <textarea
-              id="batchInput"
-              class="batch-input"
-              rows="4"
-              placeholder="Paste one URL per line…"
-              spellcheck="false"
-              hidden
-            ></textarea>
-            <div class="range-panel" id="rangePanel" hidden>
-              <div class="range-panel-copy">
-                <span class="range-kicker">206 partial content</span>
-                <strong>Download a byte range</strong>
-                <span>Uses HTTP Range and expects a 206 response.</span>
-              </div>
-              <div class="range-fields">
-                <label class="range-field">
-                  <span>Start byte</span>
-                  <input id="rangeStartInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
-                </label>
-                <label class="range-field">
-                  <span>End byte <small>optional</small></span>
-                  <input id="rangeEndInput" type="number" min="0" step="1" inputmode="numeric" placeholder="end of file" />
-                </label>
-                <label class="range-field range-wide">
-                  <span>If-Range <small>optional</small></span>
-                  <input id="rangeIfInput" type="text" autocomplete="off" spellcheck="false" placeholder='"etag" or date' />
-                </label>
-              </div>
-              <code class="range-preview" id="rangePreview">bytes=0-</code>
-            </div>
-            <div class="request-headers" id="headersPanel" hidden>
-              <div class="request-headers-head">
-                <span class="request-headers-title">
-                  <svg class="icon"><use href="#i-terminal" /></svg>
-                  Imported request headers
-                  <span class="headers-count" id="headersCount">0</span>
-                </span>
-                <button class="text-button" id="clearHeadersBtn" type="button">Clear</button>
-              </div>
-              <div class="header-chips" id="headerChips"></div>
-            </div>
-            <div class="composer-bottom">
-              <div class="composer-hint">
-                <span class="live-dot"></span>
-                Direct HTTP/HTTPS links · resumable via Range · live preview
-              </div>
-              <div class="composer-toggles">
-                <button class="text-button" id="curlToggle" type="button">
-                  <svg class="icon"><use href="#i-terminal" /></svg>
-                  <span>Import cURL</span>
-                </button>
-                <button class="text-button" id="rangeToggle" type="button">
-                  <svg class="icon"><use href="#i-code" /></svg>
-                  <span>206 range</span>
-                </button>
-                <button class="text-button" id="batchToggle" type="button">
-                  <svg class="icon"><use href="#i-grid" /></svg>
-                  <span>Batch mode</span>
-                </button>
-              </div>
-            </div>
-            <div class="form-error" id="addError" role="alert" hidden></div>
-          </form>
-        </section>
+                  hidden
+                ></textarea>
+                <div class="range-panel" id="rangePanel" hidden>
+                  <div class="range-panel-copy">
+                    <span class="range-kicker">206 partial content</span>
+                    <strong>Download a byte range</strong>
+                    <span>Uses HTTP Range and expects a 206 response.</span>
+                  </div>
+                  <div class="range-fields">
+                    <label class="range-field">
+                      <span>Start byte</span>
+                      <input id="rangeStartInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+                    </label>
+                    <label class="range-field">
+                      <span>End byte <small>optional</small></span>
+                      <input id="rangeEndInput" type="number" min="0" step="1" inputmode="numeric" placeholder="end of file" />
+                    </label>
+                    <label class="range-field range-wide">
+                      <span>If-Range <small>optional</small></span>
+                      <input id="rangeIfInput" type="text" autocomplete="off" spellcheck="false" placeholder='"etag" or date' />
+                    </label>
+                  </div>
+                  <code class="range-preview" id="rangePreview">bytes=0-</code>
+                </div>
+                <div class="request-headers" id="headersPanel" hidden>
+                  <div class="request-headers-head">
+                    <span class="request-headers-title">
+                      <svg class="icon"><use href="#i-terminal" /></svg>
+                      Imported request headers
+                      <span class="headers-count" id="headersCount">0</span>
+                    </span>
+                    <button class="text-button" id="clearHeadersBtn" type="button">Clear</button>
+                  </div>
+                  <div class="header-chips" id="headerChips"></div>
+                </div>
+                <div class="composer-bottom">
+                  <div class="composer-hint">
+                    <span class="live-dot"></span>
+                    Direct HTTP/HTTPS links · resumable via Range · live preview
+                  </div>
+                  <div class="composer-toggles">
+                    <button class="text-button" id="curlToggle" type="button">
+                      <svg class="icon"><use href="#i-terminal" /></svg>
+                      <span>Import cURL</span>
+                    </button>
+                    <button class="text-button" id="rangeToggle" type="button">
+                      <svg class="icon"><use href="#i-code" /></svg>
+                      <span>206 range</span>
+                    </button>
+                    <button class="text-button" id="batchToggle" type="button">
+                      <svg class="icon"><use href="#i-grid" /></svg>
+                      <span>Batch mode</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="form-error" id="addError" role="alert" hidden></div>
+              </form>
+            </section>
 
-        <section class="metrics" aria-label="Download statistics">
-          <article class="metric">
-            <div class="metric-icon mint"><svg class="icon"><use href="#i-download" /></svg></div>
-            <div>
-              <span class="metric-label">Active queue</span>
-              <strong id="metricActive">0</strong>
-            </div>
-            <span class="metric-foot" id="metricActiveFoot">idle</span>
-          </article>
-          <article class="metric">
-            <div class="metric-icon cyan"><svg class="icon"><use href="#i-arrow-up" /></svg></div>
-            <div>
-              <span class="metric-label">Download speed</span>
-              <strong id="metricSpeed">0 B/s</strong>
-            </div>
-            <span class="metric-foot">combined</span>
-          </article>
-          <article class="metric">
-            <div class="metric-icon amber"><svg class="icon"><use href="#i-check" /></svg></div>
-            <div>
-              <span class="metric-label">Completed</span>
-              <strong id="metricCompleted">0</strong>
-            </div>
-            <span class="metric-foot" id="metricCompletedFoot">files</span>
-          </article>
-          <article class="metric">
-            <div class="metric-icon rose"><svg class="icon"><use href="#i-folder" /></svg></div>
-            <div>
-              <span class="metric-label">On disk</span>
-              <strong id="metricDisk">0 B</strong>
-            </div>
-            <span class="metric-foot" id="metricDiskFoot">downloaded</span>
-          </article>
-        </section>
+            <section class="metrics" aria-label="Download statistics">
+              <article class="metric">
+                <div class="metric-icon mint"><svg class="icon"><use href="#i-download" /></svg></div>
+                <div>
+                  <span class="metric-label">Active queue</span>
+                  <strong id="metricActive">0</strong>
+                </div>
+                <span class="metric-foot" id="metricActiveFoot">idle</span>
+              </article>
+              <article class="metric">
+                <div class="metric-icon cyan"><svg class="icon"><use href="#i-arrow-up" /></svg></div>
+                <div>
+                  <span class="metric-label">Download speed</span>
+                  <strong id="metricSpeed">0 B/s</strong>
+                </div>
+                <span class="metric-foot">combined</span>
+              </article>
+              <article class="metric">
+                <div class="metric-icon amber"><svg class="icon"><use href="#i-check" /></svg></div>
+                <div>
+                  <span class="metric-label">Completed</span>
+                  <strong id="metricCompleted">0</strong>
+                </div>
+                <span class="metric-foot" id="metricCompletedFoot">files</span>
+              </article>
+              <article class="metric">
+                <div class="metric-icon rose"><svg class="icon"><use href="#i-folder" /></svg></div>
+                <div>
+                  <span class="metric-label">On disk</span>
+                  <strong id="metricDisk">0 B</strong>
+                </div>
+                <span class="metric-foot" id="metricDiskFoot">downloaded</span>
+              </article>
+            </section>
 
-        <section class="library" aria-labelledby="libraryTitle">
-          <div class="library-head">
-            <div class="library-title">
-              <h2 id="libraryTitle">Library</h2>
-              <span class="result-count" id="resultCount">0 items</span>
-            </div>
-            <div class="library-tools">
-              <div class="filter-chips" role="tablist" aria-label="Filter downloads">
-                <button class="filter-chip is-active" data-filter="all" type="button">All</button>
-                <button class="filter-chip" data-filter="active" type="button">Active</button>
-                <button class="filter-chip" data-filter="completed" type="button">Done</button>
-                <button class="filter-chip" data-filter="paused" type="button">Paused</button>
-                <button class="filter-chip" data-filter="failed" type="button">Failed</button>
+            <section class="library" aria-labelledby="libraryTitle">
+              <div class="library-head">
+                <div class="library-title">
+                  <h2 id="libraryTitle">Library</h2>
+                  <span class="result-count" id="resultCount">0 items</span>
+                </div>
+                <div class="library-tools">
+                  <div class="filter-chips" role="tablist" aria-label="Filter downloads">
+                    <button class="filter-chip is-active" data-filter="all" type="button">All</button>
+                    <button class="filter-chip" data-filter="active" type="button">Active</button>
+                    <button class="filter-chip" data-filter="completed" type="button">Done</button>
+                    <button class="filter-chip" data-filter="paused" type="button">Paused</button>
+                    <button class="filter-chip" data-filter="failed" type="button">Failed</button>
+                  </div>
+                  <span class="tool-divider"></span>
+                  <button class="icon-button" id="pauseAllBtn" type="button" title="Pause all" aria-label="Pause all downloads">
+                    <svg class="icon"><use href="#i-pause" /></svg>
+                  </button>
+                  <button class="icon-button" id="resumeAllBtn" type="button" title="Resume all" aria-label="Resume all downloads">
+                    <svg class="icon"><use href="#i-play" /></svg>
+                  </button>
+                  <button class="icon-button" id="clearCompletedBtn" type="button" title="Clear completed" aria-label="Clear completed downloads">
+                    <svg class="icon"><use href="#i-trash" /></svg>
+                  </button>
+                </div>
               </div>
-              <span class="tool-divider"></span>
-              <button class="icon-button" id="pauseAllBtn" type="button" title="Pause all" aria-label="Pause all downloads">
-                <svg class="icon"><use href="#i-pause" /></svg>
-              </button>
-              <button class="icon-button" id="resumeAllBtn" type="button" title="Resume all" aria-label="Resume all downloads">
-                <svg class="icon"><use href="#i-play" /></svg>
-              </button>
-              <button class="icon-button" id="clearCompletedBtn" type="button" title="Clear completed" aria-label="Clear completed downloads">
-                <svg class="icon"><use href="#i-trash" /></svg>
-              </button>
-            </div>
+
+              <div class="download-grid" id="downloadGrid"></div>
+
+              <div class="loading-grid" id="loadingState" aria-hidden="true">
+                <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w70"></div><div class="skeleton-line w45"></div></div>
+                <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w60"></div><div class="skeleton-line w40"></div></div>
+                <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w75"></div><div class="skeleton-line w50"></div></div>
+              </div>
+
+              <div class="empty-state" id="emptyState" hidden>
+                <div class="empty-art">
+                  <div class="empty-ring ring-one"></div>
+                  <div class="empty-ring ring-two"></div>
+                  <div class="empty-icon"><svg class="icon"><use href="#i-download" /></svg></div>
+                  <span class="orbit-dot dot-one"></span>
+                  <span class="orbit-dot dot-two"></span>
+                </div>
+                <h3 id="emptyTitle">Your queue is clear</h3>
+                <p id="emptyText">Paste a direct media or file URL above to start. Downloads resume automatically if the connection drops.</p>
+              </div>
+            </section>
           </div>
 
-          <div class="download-grid" id="downloadGrid"></div>
-
-          <div class="loading-grid" id="loadingState" aria-hidden="true">
-            <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w70"></div><div class="skeleton-line w45"></div></div>
-            <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w60"></div><div class="skeleton-line w40"></div></div>
-            <div class="skeleton-card"><div class="skeleton thumb"></div><div class="skeleton-line w75"></div><div class="skeleton-line w50"></div></div>
-          </div>
-
-          <div class="empty-state" id="emptyState" hidden>
-            <div class="empty-art">
-              <div class="empty-ring ring-one"></div>
-              <div class="empty-ring ring-two"></div>
-              <div class="empty-icon"><svg class="icon"><use href="#i-download" /></svg></div>
-              <span class="orbit-dot dot-one"></span>
-              <span class="orbit-dot dot-two"></span>
+          <aside class="preview-dock" id="previewDock" aria-label="Preview and details">
+            <div class="dock-empty" id="dockEmpty">
+              <span class="dock-empty-icon"><svg class="icon big"><use href="#i-inspect" /></svg></span>
+              <strong id="dockEmptyTitle">No download selected</strong>
+              <p id="dockEmptyText">Select a download to see its live preview, progress, metadata and actions here.</p>
             </div>
-            <h3 id="emptyTitle">Your queue is clear</h3>
-            <p id="emptyText">Paste a direct media or file URL above to start. Downloads resume automatically if the connection drops.</p>
-          </div>
-        </section>
+
+            <section class="dock-view" id="detailPanel" hidden>
+              <header class="dock-head">
+                <div class="modal-heading">
+                  <div class="heading-kicker">
+                    <span class="pill" id="detailKind">video</span>
+                    <span class="pill partial" id="detailRangeBadge" hidden>206 partial</span>
+                    <span class="status-inline" id="detailStatusText">Queued</span>
+                  </div>
+                  <h2 id="detailTitle">Download</h2>
+                  <p id="detailHost">example.com</p>
+                </div>
+                <button class="icon-button close-button" id="detailCloseBtn" type="button" aria-label="Close preview">
+                  <svg class="icon"><use href="#i-x" /></svg>
+                </button>
+              </header>
+
+              <div class="detail-layout">
+                <div class="player-column">
+                  <div class="player" id="detailPlayer">
+                    <video id="detailVideo" controls playsinline preload="metadata" hidden></video>
+                    <audio id="detailAudio" controls preload="metadata" hidden></audio>
+                    <img id="detailImage" alt="" hidden />
+                    <div class="player-placeholder" id="detailPlaceholder">
+                      <svg class="icon big"><use href="#i-file" /></svg>
+                      <span>No inline preview</span>
+                    </div>
+                    <div class="player-badge" id="detailPlayerBadge">PREVIEW</div>
+                  </div>
+                  <p class="player-note" id="detailPreviewNote"></p>
+                  <div class="detail-error" id="detailError" hidden></div>
+                </div>
+
+                <aside class="detail-side">
+                  <div class="detail-progress" id="detailProgress">
+                    <div class="detail-progress-head">
+                      <strong id="detailPercent">0%</strong>
+                      <span id="detailBytes">0 B</span>
+                    </div>
+                    <div class="progress-track large"><span id="detailProgressFill"></span></div>
+                    <div class="detail-progress-foot">
+                      <span id="detailSpeed">—</span>
+                      <span id="detailEta"></span>
+                    </div>
+                  </div>
+
+                  <div class="detail-actions" id="detailActions"></div>
+
+                  <dl class="meta-list" id="detailMeta"></dl>
+                </aside>
+              </div>
+            </section>
+
+            <section class="dock-view" id="inspectPanel" hidden>
+              <header class="dock-head">
+                <div class="modal-heading">
+                  <div class="heading-kicker">
+                    <span class="pill" id="inspectKind">preview</span>
+                    <span class="status-inline">remote file</span>
+                  </div>
+                  <h2 id="inspectTitle">Inspecting link…</h2>
+                  <p id="inspectHost">This does not download the file yet.</p>
+                </div>
+                <button class="icon-button close-button" id="inspectCloseBtn" type="button" aria-label="Close remote preview">
+                  <svg class="icon"><use href="#i-x" /></svg>
+                </button>
+              </header>
+              <div class="inspect-layout">
+                <div class="player" id="inspectPlayer">
+                  <video id="inspectVideo" controls playsinline preload="metadata" hidden></video>
+                  <audio id="inspectAudio" controls preload="metadata" hidden></audio>
+                  <img id="inspectImage" alt="" hidden />
+                  <div class="inspect-loading" id="inspectLoading">
+                    <span class="spinner"></span>
+                    <span>Reading remote headers…</span>
+                  </div>
+                  <div class="player-placeholder" id="inspectPlaceholder" hidden>
+                    <svg class="icon big"><use href="#i-file" /></svg>
+                    <span>No inline preview</span>
+                  </div>
+                </div>
+                <div class="inspect-side">
+                  <div class="inspect-facts" id="inspectFacts"></div>
+                  <div class="inspect-url" id="inspectUrl"></div>
+                  <div class="detail-error" id="inspectError" hidden></div>
+                  <button class="button primary full" id="inspectAddBtn" type="button">
+                    <svg class="icon"><use href="#i-plus" /></svg>
+                    Add to downloads
+                  </button>
+                  <p class="fine-print">Preview streams through your local Downlink server. Seeking uses HTTP Range requests and may consume remote bandwidth.</p>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
       </main>
     </div>
+
+    <div class="dock-scrim" id="dockScrim" hidden></div>
 
     <div class="drop-overlay" id="dropOverlay" hidden>
       <div class="drop-card">
@@ -391,102 +498,6 @@
       </div>
     </div>
 
-    <dialog class="modal detail-modal" id="detailDialog">
-      <div class="modal-card detail-card">
-        <header class="modal-header">
-          <div class="modal-heading">
-            <div class="heading-kicker">
-              <span class="pill" id="detailKind">video</span>
-              <span class="pill partial" id="detailRangeBadge" hidden>206 partial</span>
-              <span class="status-inline" id="detailStatusText">Queued</span>
-            </div>
-            <h2 id="detailTitle">Download</h2>
-            <p id="detailHost">example.com</p>
-          </div>
-          <button class="icon-button close-button" data-close="detailDialog" type="button" aria-label="Close">
-            <svg class="icon"><use href="#i-x" /></svg>
-          </button>
-        </header>
-
-        <div class="detail-layout">
-          <div class="player-column">
-            <div class="player" id="detailPlayer">
-              <video id="detailVideo" controls playsinline preload="metadata" hidden></video>
-              <audio id="detailAudio" controls preload="metadata" hidden></audio>
-              <img id="detailImage" alt="" hidden />
-              <div class="player-placeholder" id="detailPlaceholder">
-                <svg class="icon big"><use href="#i-file" /></svg>
-                <span>No inline preview</span>
-              </div>
-              <div class="player-badge" id="detailPlayerBadge">PREVIEW</div>
-            </div>
-            <p class="player-note" id="detailPreviewNote"></p>
-            <div class="detail-error" id="detailError" hidden></div>
-          </div>
-
-          <aside class="detail-side">
-            <div class="detail-progress" id="detailProgress">
-              <div class="detail-progress-head">
-                <strong id="detailPercent">0%</strong>
-                <span id="detailBytes">0 B</span>
-              </div>
-              <div class="progress-track large"><span id="detailProgressFill"></span></div>
-              <div class="detail-progress-foot">
-                <span id="detailSpeed">—</span>
-                <span id="detailEta"></span>
-              </div>
-            </div>
-
-            <dl class="meta-list" id="detailMeta"></dl>
-
-            <div class="detail-actions" id="detailActions"></div>
-          </aside>
-        </div>
-      </div>
-    </dialog>
-
-    <dialog class="modal inspect-modal" id="inspectDialog">
-      <div class="modal-card inspect-card">
-        <header class="modal-header">
-          <div class="modal-heading">
-            <div class="heading-kicker">
-              <span class="pill" id="inspectKind">preview</span>
-              <span class="status-inline">remote file</span>
-            </div>
-            <h2 id="inspectTitle">Inspecting link…</h2>
-            <p id="inspectHost">This does not download the file yet.</p>
-          </div>
-          <button class="icon-button close-button" data-close="inspectDialog" type="button" aria-label="Close">
-            <svg class="icon"><use href="#i-x" /></svg>
-          </button>
-        </header>
-        <div class="inspect-layout">
-          <div class="player" id="inspectPlayer">
-            <video id="inspectVideo" controls playsinline preload="metadata" hidden></video>
-            <audio id="inspectAudio" controls preload="metadata" hidden></audio>
-            <img id="inspectImage" alt="" hidden />
-            <div class="inspect-loading" id="inspectLoading">
-              <span class="spinner"></span>
-              <span>Reading remote headers…</span>
-            </div>
-            <div class="player-placeholder" id="inspectPlaceholder" hidden>
-              <svg class="icon big"><use href="#i-file" /></svg>
-              <span>No inline preview</span>
-            </div>
-          </div>
-          <div class="inspect-side">
-            <div class="inspect-facts" id="inspectFacts"></div>
-            <div class="inspect-url" id="inspectUrl"></div>
-            <div class="detail-error" id="inspectError" hidden></div>
-            <button class="button primary full" id="inspectAddBtn" type="button">
-              <svg class="icon"><use href="#i-plus" /></svg>
-              Add to downloads
-            </button>
-            <p class="fine-print">Preview streams through your local Downlink server. Seeking uses HTTP Range requests and may consume remote bandwidth.</p>
-          </div>
-        </div>
-      </div>
-    </dialog>
 
     <dialog class="modal settings-modal" id="settingsDialog">
       <form class="modal-card settings-card" id="settingsForm" method="dialog">

@@ -16,10 +16,25 @@
   animation: card-in 340ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
 }
 
+.download-card {
+  cursor: pointer;
+}
+
 .download-card:hover {
   border-color: var(--line-strong);
   box-shadow: var(--shadow-soft);
   transform: translateY(-2px);
+}
+
+.download-card.is-selected {
+  border-color: color-mix(in srgb, var(--lime) 42%, var(--line));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lime) 34%, transparent),
+    0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.download-card.is-selected:hover {
+  transform: none;
 }
 
 .download-card.is-error {

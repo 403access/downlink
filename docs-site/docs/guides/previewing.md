@@ -3,7 +3,8 @@ title: Previewing files
 description: Inspect remote files and stream partial downloads while they arrive.
 ---
 
-Downlink previews before and during a download. Both paths are local and range-enabled.
+Downlink previews before and during a download. Both paths appear in the docked panel on
+the right, so you can inspect a link or a library item without opening a dialog.
 
 ## Remote inspection
 
@@ -20,7 +21,7 @@ to the page.
 
 ## Preview while downloading
 
-The detail view streams from the growing `.part` file. The endpoint
+Select a library card and the preview dock streams from the growing `.part` file. The endpoint
 `/api/downloads/:id/preview` supports `Range` requests, so seeking works mid-transfer instead
 of waiting for completion.
 

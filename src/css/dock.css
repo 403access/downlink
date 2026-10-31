@@ -1,0 +1,157 @@
+/* dock.css — part of the Downlink stylesheet. */
+
+/* Preview dock ------------------------------------------------------------ */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.workspace-main {
+  min-width: 0;
+}
+
+.preview-dock {
+  position: sticky;
+  top: 22px;
+  display: flex;
+  overflow: auto;
+  max-height: calc(100vh - 140px);
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 0% 0%, var(--lime-soft), transparent 22rem),
+    var(--panel);
+  box-shadow: var(--shadow-soft);
+  scrollbar-gutter: stable;
+}
+
+.dock-empty {
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 24px;
+  text-align: center;
+}
+
+.dock-empty-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  margin-bottom: 5px;
+  border-radius: 15px;
+  background: var(--panel-2);
+  color: var(--dim);
+}
+
+.dock-empty strong {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+
+.dock-empty p {
+  max-width: 250px;
+  margin: 0;
+  color: var(--dim);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.dock-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 18px 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dock-head .modal-heading h2 {
+  font-size: 19px;
+  letter-spacing: -0.5px;
+}
+
+.preview-dock .detail-layout,
+.preview-dock .inspect-layout {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 15px 18px 18px;
+  gap: 15px;
+}
+
+.preview-dock .detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.preview-dock .detail-actions {
+  margin-top: 2px;
+}
+
+.preview-dock .player {
+  min-height: 0;
+}
+
+.preview-dock .inspect-side {
+  gap: 12px;
+}
+
+.dock-scrim {
+  display: none;
+}
+
+@media (max-width: 1650px) {
+  .workspace .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1320px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .preview-dock {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(420px, 100vw);
+    max-height: none;
+    border-radius: 20px 0 0 20px;
+    transform: translateX(102%);
+    visibility: hidden;
+    transition: transform 220ms cubic-bezier(0.2, 0.75, 0.3, 1), visibility 220ms;
+  }
+
+  .preview-dock.is-open {
+    transform: none;
+    visibility: visible;
+  }
+
+  .dock-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    background: rgba(4, 7, 5, 0.62);
+    backdrop-filter: blur(5px);
+  }
+}
+
+@media (max-width: 680px) {
+  .preview-dock {
+    width: 100vw;
+    border-radius: 0;
+  }
+}

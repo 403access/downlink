@@ -17,6 +17,7 @@ import {
   state,
   toast,
 } from "./dom";
+import { openDetail } from "./detail";
 import { handleJob } from "./events";
 import { hostFromUrl } from "./format";
 import type { Job, PartialRangeRequest } from "./types";
@@ -195,6 +196,9 @@ export async function handleAddSubmit(): Promise<void> {
     result.jobs.forEach((job) => handleJob(job, false));
     if (result.jobs.length > 0) {
       if (result.errors.length === 0) clearImportedHeaders();
+      if (!state.batchMode && result.jobs.length === 1) {
+        openDetail(result.jobs[0]!.id, { reveal: false });
+      }
       if (state.batchMode) {
         const failedUrls = new Set(result.errors.map((item) => item.url));
         els.batchInput.value = urls.filter((url) => failedUrls.has(url)).join("\n");

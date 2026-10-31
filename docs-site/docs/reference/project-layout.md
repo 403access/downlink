@@ -56,8 +56,8 @@ no separate build step.
 | `client/index.ts` | Bindings, drag and drop, boot. |
 | `client/cards.ts` | Library cards, filters, summaries, thumbnails. |
 | `client/composer.ts` | Add form, 206 range mode, cURL apply, clipboard paste. |
-| `client/detail.ts` | Detail dialog and media preview. |
-| `client/inspect.ts` | Remote inspect dialog. |
+| `client/detail.ts` | Docked detail panel, selection, and media preview. |
+| `client/inspect.ts` | Docked remote inspect panel. |
 | `client/curl-preview.ts` | Live cURL preview and imported-header chips. |
 | `client/actions.ts` | Pause/resume/retry/delete actions and confirm dialog. |
 | `client/settings.ts` | Settings and queue actions. |

@@ -220,7 +220,7 @@ async function main(): Promise<void> {
     await browser.client.screenshot(join(root, "artifacts", "curl-preview.png"));
 
     await browser.client.evaluate(
-      "document.querySelector('#inspectDialog .close-button').click()",
+      "document.querySelector('#inspectCloseBtn').click()",
     );
     await Bun.sleep(150);
     await browser.client.click("#addBtn");

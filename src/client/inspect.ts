@@ -1,11 +1,14 @@
 import { api } from "./api";
 import { addUrls, getRangeFromForm } from "./composer";
 import { clearImportedHeaders } from "./curl-preview";
+import { openDetail, pauseDetailMedia, refreshSelectedDetail } from "./detail";
 import {
   clearFormError,
-  closeDialog,
+  closeDock,
   els,
+  revealDock,
   setBusy,
+  setDockView,
   showFormError,
   state,
   toast,
@@ -27,10 +30,8 @@ export function resetInspectPlayer(): void {
   els.inspectLoading.hidden = false;
 }
 
-export function openInspectDialog(): void {
-  state.inspectProbe = null;
-  state.inspectPreviewUrl = null;
-  state.inspectRequest += 1;
+export function openInspectPanel(): void {
+  clearInspectState();
   els.inspectKind.textContent = "preview";
   els.inspectTitle.textContent = "Inspecting link…";
   els.inspectHost.textContent = "Reading headers. This does not download the file yet.";
@@ -40,7 +41,23 @@ export function openInspectDialog(): void {
   els.inspectError.textContent = "";
   els.inspectAddBtn.disabled = true;
   resetInspectPlayer();
-  if (!els.inspectDialog.open) els.inspectDialog.showModal();
+  pauseDetailMedia();
+  setDockView("inspect");
+  revealDock();
+}
+
+function clearInspectState(): void {
+  state.inspectProbe = null;
+  state.inspectPreviewUrl = null;
+  state.inspectRequest += 1;
+}
+
+export function closeInspectPanel(): void {
+  clearInspectState();
+  resetInspectPlayer();
+  setBusy(els.inspectBtn, false);
+  refreshSelectedDetail();
+  closeDock();
 }
 
 export function inspectFact(label: string, value: string): string {
@@ -70,7 +87,7 @@ export async function inspectCurrentUrl(): Promise<void> {
   }
 
   clearFormError();
-  openInspectDialog();
+  openInspectPanel();
   const request = state.inspectRequest;
   setBusy(els.inspectBtn, true, "Inspecting…");
 
@@ -165,7 +182,12 @@ export async function addInspectedUrl(): Promise<void> {
         result.jobs[0]?.fileName,
         "success",
       );
-      closeDialog(els.inspectDialog);
+      const added = result.jobs[0];
+      if (added) {
+        clearInspectState();
+        resetInspectPlayer();
+        openDetail(added.id);
+      }
     }
     if (result.errors.length > 0) {
       els.inspectError.textContent = result.errors
@@ -183,13 +205,7 @@ export async function addInspectedUrl(): Promise<void> {
 }
 
 export function bindInspectEvents(): void {
-  els.inspectDialog.addEventListener("close", () => {
-    state.inspectProbe = null;
-    state.inspectPreviewUrl = null;
-    state.inspectRequest += 1;
-    resetInspectPlayer();
-    setBusy(els.inspectBtn, false);
-  });
+  els.inspectCloseBtn.addEventListener("click", closeInspectPanel);
 
   for (const media of [els.inspectVideo, els.inspectAudio]) {
     media.addEventListener("error", () => {

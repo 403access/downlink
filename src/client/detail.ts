@@ -1,4 +1,4 @@
-import { els, state } from "./dom";
+import { closeDock, els, revealDock, setDockView, state } from "./dom";
 import {
   esc,
   formatBytes,
@@ -13,16 +13,102 @@ import {
 } from "./format";
 import type { Job } from "./types";
 
-export function openDetail(id: string): void {
-  const job = state.jobs.get(id);
-  if (!job) return;
-  state.detailId = id;
-  state.detailMediaKey = "";
-  state.detailActionsKey = "";
-  resetDetailMedia();
-  if (!els.detailDialog.open) els.detailDialog.showModal();
-  updateDetail(job);
-  els.detailDialog.scrollTop = 0;
+interface DetailOptions {
+  reveal?: boolean;
+  switchView?: boolean;
+}
+
+export function openDetail(id: string, options: DetailOptions = {}): void {
+  state.detailDismissed = false;
+  selectDetail(id, {
+    reveal: options.reveal ?? true,
+    switchView: options.switchView ?? true,
+  });
+}
+
+export function selectDetail(
+  id: string | null,
+  options: DetailOptions = {},
+): void {
+  const { reveal = false, switchView = true } = options;
+  const job = id ? state.jobs.get(id) ?? null : null;
+  const nextId = job?.id ?? null;
+  if (nextId !== state.detailId) {
+    state.detailId = nextId;
+    state.detailMediaKey = "";
+    state.detailActionsKey = "";
+    resetDetailMedia();
+    if (nextId) els.detailPanel.scrollTop = 0;
+  }
+
+  updateCardSelection();
+  if (switchView) {
+    if (nextId) {
+      cancelInspectPreview();
+      setDockView("detail");
+    } else if (state.dockView !== "inspect") {
+      syncDockEmpty();
+      setDockView("empty");
+    }
+  }
+  if (reveal && nextId) revealDock();
+  if (job) updateDetail(job);
+}
+
+export function refreshSelectedDetail(): void {
+  const job = state.detailId ? state.jobs.get(state.detailId) : null;
+  if (job) {
+    setDockView("detail");
+    updateDetail(job);
+  } else {
+    syncDockEmpty();
+    setDockView("empty");
+  }
+}
+
+export function closeDetail(): void {
+  state.detailDismissed = true;
+  selectDetail(null);
+  closeDock();
+}
+
+function syncDockEmpty(): void {
+  const empty = state.jobs.size === 0;
+  els.dockEmptyTitle.textContent = empty ? "Your queue is empty" : "No download selected";
+  els.dockEmptyText.textContent = empty
+    ? "Add a download to see its live preview, progress, metadata and actions here."
+    : "Select a download to see its live preview, progress, metadata and actions here.";
+}
+
+function updateCardSelection(): void {
+  for (const [id, card] of state.cards) {
+    const selected = id === state.detailId;
+    card.classList.toggle("is-selected", selected);
+    if (selected) card.setAttribute("aria-current", "true");
+    else card.removeAttribute("aria-current");
+  }
+}
+
+export function pauseDetailMedia(): void {
+  els.detailVideo.pause();
+  els.detailAudio.pause();
+}
+
+function cancelInspectPreview(): void {
+  state.inspectProbe = null;
+  state.inspectPreviewUrl = null;
+  state.inspectRequest += 1;
+  for (const media of [els.inspectVideo, els.inspectAudio]) {
+    media.pause();
+    media.removeAttribute("src");
+    media.load();
+    media.hidden = true;
+  }
+  els.inspectImage.hidden = true;
+  els.inspectImage.removeAttribute("src");
+  els.inspectPlaceholder.hidden = true;
+  els.inspectLoading.hidden = false;
+  els.inspectAddBtn.disabled = true;
 }
 
 export function resetDetailMedia(): void {
@@ -38,7 +124,7 @@ export function resetDetailMedia(): void {
 }
 
 export function updateDetail(job: Job): void {
-  if (!els.detailDialog.open || state.detailId !== job.id) return;
+  if (state.detailId !== job.id) return;
 
   els.detailKind.textContent = job.kind;
   els.detailRangeBadge.hidden = !job.isPartial;
@@ -253,11 +339,7 @@ export function detailActions(job: Job): string {
 
 
 export function bindDetailEvents(): void {
-  els.detailDialog.addEventListener("close", () => {
-    state.detailId = null;
-    state.detailMediaKey = "";
-    resetDetailMedia();
-  });
+  els.detailCloseBtn.addEventListener("click", closeDetail);
 
   for (const media of [els.detailVideo, els.detailAudio]) {
     media.addEventListener("error", () => {

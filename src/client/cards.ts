@@ -1,6 +1,6 @@
-import { closeDialog, els, state } from "./dom";
+import { selectDetail } from "./detail";
+import { els, state } from "./dom";
 import {
-  canPreviewNow,
   esc,
   formatBytes,
   formatEta,
@@ -128,13 +128,33 @@ export function matchesSearch(job: Job): boolean {
 }
 
 export function applyFilter(): void {
+  const ordered = [...state.jobs.values()].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
   let visible = 0;
-  for (const job of state.jobs.values()) {
+  let firstVisible: string | null = null;
+  for (const job of ordered) {
     const card = state.cards.get(job.id);
     if (!card) continue;
     const show = matchesFilter(job) && matchesSearch(job);
     card.hidden = !show;
-    if (show) visible += 1;
+    if (show) {
+      visible += 1;
+      firstVisible ??= job.id;
+    }
+  }
+
+  const selectedCard = state.detailId ? state.cards.get(state.detailId) : null;
+  const selectedVisible = Boolean(
+    state.detailId &&
+      selectedCard &&
+      !selectedCard.hidden &&
+      state.jobs.has(state.detailId),
+  );
+  if (!selectedVisible) {
+    selectDetail(state.detailDismissed ? null : firstVisible, {
+      switchView: state.dockView !== "inspect",
+    });
   }
 
   els.resultCount.textContent = `${visible} ${visible === 1 ? "item" : "items"}`;
@@ -296,6 +316,9 @@ export function updateCard(card: HTMLElement, job: Job): void {
   card.dataset.kind = job.kind;
   card.classList.toggle("is-downloading", job.status === "downloading");
   card.classList.toggle("is-error", job.status === "error");
+  card.classList.toggle("is-selected", state.detailId === job.id);
+  if (state.detailId === job.id) card.setAttribute("aria-current", "true");
+  else card.removeAttribute("aria-current");
   card.setAttribute(
     "aria-label",
     `${job.fileName}, ${statusLabel(job.status)}. Open details.`,
@@ -425,16 +448,10 @@ export function cardActions(job: Job): string {
     parts.push(cardButton("resume", job, "Resume", "play", { primary: true }));
   } else if (job.status === "error" || job.status === "canceled") {
     parts.push(cardButton("retry", job, "Retry", "refresh", { primary: true }));
-  } else if (job.status === "completed") {
-    if (canPreviewNow(job)) {
-      parts.push(cardButton("preview", job, "Preview", "play", { primary: true }));
-    } else {
-      parts.push(cardButton("reveal", job, "Show", "folder", { primary: true }));
-    }
-  }
-
-  if (job.status !== "completed" && canPreviewNow(job)) {
-    parts.push(cardButton("preview", job, "Preview partial file", "inspect", { iconOnly: true }));
+  } else if (job.status === "completed" && job.fileExists) {
+    parts.push(
+      cardButton("reveal", job, "Show in folder", "folder", { primary: true }),
+    );
   }
 
   if (job.status === "completed" && job.fileExists) {
@@ -579,6 +596,5 @@ export function handleDeleted(id: string): void {
   state.cards.delete(id);
   state.jobs.delete(id);
   state.thumbs.delete(id);
-  if (state.detailId === id) closeDialog(els.detailDialog);
   applyFilter();
 }

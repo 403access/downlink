@@ -44,10 +44,22 @@ try {
     "Boolean(document.querySelector('.download-card'))",
   );
   if (hasCard) {
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "Boolean(document.querySelector('.download-card.is-selected'))",
+      ),
+      true,
+    );
     await browser.client.click(".download-card");
     await Bun.sleep(600);
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "document.querySelector('#detailPanel').hidden",
+      ),
+      false,
+    );
     await browser.client.screenshot(join(artifactsDir, "smoke-detail.png"));
-    await browser.client.evaluate("document.querySelector('#detailDialog')?.close()");
+    await browser.client.evaluate("document.querySelector('#detailCloseBtn')?.click()");
   }
 
   await browser.client.click("#rangeToggle");
@@ -198,6 +210,32 @@ try {
     true,
   );
   await browser.client.screenshot(join(artifactsDir, "smoke-mobile.png"));
+
+  if (hasCard) {
+    await browser.client.click(".download-card");
+    await Bun.sleep(400);
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "document.querySelector('#previewDock').classList.contains('is-open')",
+      ),
+      true,
+    );
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "document.querySelector('#detailPanel').hidden",
+      ),
+      false,
+    );
+    await browser.client.screenshot(join(artifactsDir, "smoke-mobile-detail.png"));
+    await browser.client.click("#detailCloseBtn");
+    await Bun.sleep(200);
+    assert.equal(
+      await browser.client.evaluate<boolean>(
+        "document.querySelector('#previewDock').classList.contains('is-open')",
+      ),
+      false,
+    );
+  }
 
   if (browser.client.errors.length > 0) {
     throw new Error(

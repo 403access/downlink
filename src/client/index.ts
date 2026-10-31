@@ -18,13 +18,19 @@ import {
 import { bindDetailEvents } from "./detail";
 import {
   clearFormError,
+  closeDock,
   closeDialog,
   els,
   state,
   updateConnection,
 } from "./dom";
 import { applySnapshot, connectEvents } from "./events";
-import { addInspectedUrl, bindInspectEvents, inspectCurrentUrl } from "./inspect";
+import {
+  addInspectedUrl,
+  bindInspectEvents,
+  closeInspectPanel,
+  inspectCurrentUrl,
+} from "./inspect";
 import {
   clearCompleted,
   clearHistory,
@@ -59,7 +65,13 @@ function bindEvents(): void {
     input.addEventListener("input", updateRangePreview);
   }
 
-  els.pasteBtn.addEventListener("click", () => void pasteFromClipboard());
+  els.pasteBtn.addEventListener("click", () => {
+    const before = els.urlInput.value;
+    void pasteFromClipboard().then(() => {
+      const value = els.urlInput.value.trim();
+      if (!state.batchMode && value && value !== before) void inspectCurrentUrl();
+    });
+  });
   els.curlToggle.addEventListener("click", () => openCurlDialog());
   els.curlForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -76,9 +88,15 @@ function bindEvents(): void {
 
   els.urlInput.addEventListener("paste", (event) => {
     const text = event.clipboardData?.getData("text") ?? "";
-    if (!looksLikeCurl(text)) return;
-    event.preventDefault();
-    openCurlDialog(text);
+    if (looksLikeCurl(text)) {
+      event.preventDefault();
+      openCurlDialog(text);
+      return;
+    }
+    if (!/^https?:\/\//i.test(text.trim())) return;
+    window.setTimeout(() => {
+      if (!state.batchMode && els.urlInput.value.trim()) void inspectCurrentUrl();
+    }, 60);
   });
 
   els.searchInput.addEventListener("input", () => {
@@ -132,8 +150,6 @@ function bindEvents(): void {
   }
 
   for (const dialog of [
-    els.detailDialog,
-    els.inspectDialog,
     els.settingsDialog,
     els.curlDialog,
     els.confirmDialog,
@@ -142,6 +158,11 @@ function bindEvents(): void {
       if (event.target === dialog) closeDialog(dialog);
     });
   }
+
+  els.dockScrim.addEventListener("click", () => {
+    if (state.dockView === "inspect") closeInspectPanel();
+    else closeDock();
+  });
 
   els.confirmDialog.addEventListener("close", () => {
     const resolve = state.confirmResolve;

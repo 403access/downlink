@@ -30,8 +30,8 @@ instead of saving something broken. Paste a direct media or file URL instead.
 ## 3. Preview before committing
 
 Press **Preview** to inspect the remote file — size, type, range support, validators — and
-stream a signed remote preview without starting a download. The preview proxy is limited to
-URLs inspected by the engine.
+stream a signed remote preview in the right-hand panel without starting a download. The
+preview proxy is limited to URLs inspected by the engine.
 
 ## 4. Pause, quit, and resume
 

@@ -45,7 +45,7 @@ proxy, so it also covers resumed transfers.
 - **Resume** — continue from the stored byte.
 - **Retry** — restart an error or canceled job, keeping any partial data.
 - **Cancel** — stop and remove partial data.
-- **Preview** — open the detail player.
+- **Preview** — select the card to show its player and details in the preview dock.
 - **Reveal** — show the file in the OS file manager.
 - **Save a copy** — range-enabled attachment download.
 - **Delete** — remove the job and, optionally, its files.

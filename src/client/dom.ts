@@ -13,6 +13,8 @@ export const state = {
   filter: "all" as Filter,
   query: "",
   detailId: null as string | null,
+  detailDismissed: false,
+  dockView: "empty" as "empty" | "detail" | "inspect",
   detailMediaKey: "",
   detailActionsKey: "",
   inspectProbe: null as Probe | null,
@@ -101,7 +103,13 @@ export const els = {
   themeIconTop: document.querySelector<SVGUseElement>("#themeIconTop use"),
   connDot: byId("connDot"),
   connText: byId("connText"),
-  detailDialog: byId<HTMLDialogElement>("detailDialog"),
+  previewDock: byId("previewDock"),
+  dockEmpty: byId("dockEmpty"),
+  dockEmptyTitle: byId("dockEmptyTitle"),
+  dockEmptyText: byId("dockEmptyText"),
+  dockScrim: byId("dockScrim"),
+  detailPanel: byId("detailPanel"),
+  detailCloseBtn: byId<HTMLButtonElement>("detailCloseBtn"),
   detailKind: byId("detailKind"),
   detailRangeBadge: byId("detailRangeBadge"),
   detailStatusText: byId("detailStatusText"),
@@ -122,7 +130,8 @@ export const els = {
   detailEta: byId("detailEta"),
   detailMeta: byId("detailMeta"),
   detailActions: byId("detailActions"),
-  inspectDialog: byId<HTMLDialogElement>("inspectDialog"),
+  inspectPanel: byId("inspectPanel"),
+  inspectCloseBtn: byId<HTMLButtonElement>("inspectCloseBtn"),
   inspectKind: byId("inspectKind"),
   inspectTitle: byId("inspectTitle"),
   inspectHost: byId("inspectHost"),
@@ -220,4 +229,21 @@ export function applySettings(settings: AppSettings): void {
 
 export function closeDialog(dialog: HTMLDialogElement): void {
   if (dialog.open) dialog.close();
+}
+
+export function setDockView(view: "empty" | "detail" | "inspect"): void {
+  state.dockView = view;
+  els.dockEmpty.hidden = view !== "empty";
+  els.detailPanel.hidden = view !== "detail";
+  els.inspectPanel.hidden = view !== "inspect";
+}
+
+export function revealDock(): void {
+  els.previewDock.classList.add("is-open");
+  els.dockScrim.hidden = false;
+}
+
+export function closeDock(): void {
+  els.previewDock.classList.remove("is-open");
+  els.dockScrim.hidden = true;
 }

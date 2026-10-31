@@ -6,14 +6,7 @@ import {
   upsertCard,
 } from "./cards";
 import { updateDetail } from "./detail";
-import {
-  applySettings,
-  closeDialog,
-  els,
-  state,
-  toast,
-  updateConnection,
-} from "./dom";
+import { applySettings, els, state, toast, updateConnection } from "./dom";
 import type { AppSettings, Job, Snapshot } from "./types";
 
 export function applySnapshot(data: Snapshot, notifyTransitions: boolean): void {
@@ -42,8 +35,7 @@ export function applySnapshot(data: Snapshot, notifyTransitions: boolean): void 
 
   if (state.detailId) {
     const job = state.jobs.get(state.detailId);
-    if (!job) closeDialog(els.detailDialog);
-    else updateDetail(job);
+    if (job) updateDetail(job);
   }
 }
 

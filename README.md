@@ -7,7 +7,7 @@ SQLite via `bun:sqlite`.
 
 ![Downlink](screenshot.png)
 
-The detail view includes a range-enabled player, resumable progress, metadata and file actions:
+Selecting a download opens a docked preview with a range-enabled player, resumable progress, metadata and file actions:
 
 ![Preview and metadata](preview.png)
 
@@ -25,10 +25,12 @@ The detail view includes a range-enabled player, resumable progress, metadata an
   validator. Downlink sends `Range`, requires a `206 Partial Content` response, and saves
   only that segment with a descriptive filename.
 - **Live preview** for video, audio and images — including while a file is still
-  downloading. The local preview endpoint supports byte ranges, so seeking works as the
+  downloading. Select any card to show its player, progress and metadata in the docked
+  detail panel. The local preview endpoint supports byte ranges, so seeking works as the
   file grows.
 - **Inspect before downloading** — probe a remote URL, see its size, type, range support
-  and validators, and stream a signed remote preview without committing to a download.
+  and validators, and stream a signed remote preview in the same side panel without
+  committing to a download.
 - **Download queue** with a configurable concurrency limit (1–10), queued/paused/completed
   states, retry, cancel and delete.
 - **Live progress** over Server-Sent Events: per-file speed, ETA, progress, combined speed,
@@ -136,13 +138,13 @@ No server-side runtime is required.
 4. For a partial transfer, open **206 range**, enter the starting byte, an optional end
    byte and an optional `If-Range` validator. The download expects `206 Partial Content`
    and saves only the requested segment.
-5. While downloading you can pause, resume, preview the partial file, or cancel.
-6. Completed cards expose preview, “save a copy”, reveal in Finder/Explorer, and delete.
+5. While downloading you can pause, resume, preview the partial file, or cancel. Selecting
+   a card shows its player, progress and metadata in the right-hand dock.
+6. Completed cards expose “save a copy”, reveal in Finder/Explorer, and delete.
 
-The **Preview** button and the detail player use `/api/downloads/:id/preview`, which
-supports `Range` requests against the `.part` file while a download is in progress. This
-works best for MP4 files with metadata at the front; some codecs/containers are not
-playable by every browser.
+The docked detail player uses `/api/preview/:id`, which supports `Range` requests against
+the `.part` file while a download is in progress. This works best for MP4 files with
+metadata at the front; some codecs/containers are not playable by every browser.
 
 ### Importing a browser request
 
@@ -235,8 +237,8 @@ src/
     index.ts       bindings, drag/drop, boot
     cards.ts       library cards, filters, summaries, thumbnails
     composer.ts    add form, 206 range mode, cURL apply, clipboard paste
-    detail.ts      detail dialog and media preview
-    inspect.ts     remote inspect dialog
+    detail.ts      docked detail panel, selection and media preview
+    inspect.ts     docked remote inspect panel
     curl-preview.ts live cURL preview + imported-header chips
     actions.ts     pause/resume/retry/delete actions and confirm dialog
     settings.ts    settings and queue actions
