@@ -1,0 +1,143 @@
+/* overlays.css — part of the Downlink stylesheet. */
+
+/* Menus, toast, drop ------------------------------------------------------ */
+
+.toast-stack {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 100;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-2);
+  box-shadow: var(--shadow);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: auto;
+  animation: toast-in 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.toast.is-out {
+  animation: toast-out 200ms ease both;
+}
+
+.toast-icon {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  flex: none;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--panel-3);
+  color: var(--muted);
+}
+
+.toast-icon .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.toast.success .toast-icon {
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.toast.error .toast-icon {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.toast.info .toast-icon {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+}
+
+.toast-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.toast-copy strong {
+  display: block;
+  margin-bottom: 1px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(5px) scale(0.98);
+  }
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 8, 6, 0.66);
+  backdrop-filter: blur(8px);
+}
+
+.drop-card {
+  display: flex;
+  width: min(430px, calc(100vw - 40px));
+  flex-direction: column;
+  align-items: center;
+  padding: 42px;
+  border: 1px dashed var(--lime);
+  border-radius: 24px;
+  background: var(--panel);
+  box-shadow: 0 0 80px var(--lime-glow);
+  text-align: center;
+}
+
+.drop-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.drop-icon .icon {
+  width: 25px;
+  height: 25px;
+}
+
+.drop-card strong {
+  font-size: 18px;
+  letter-spacing: -0.4px;
+}
+
+.drop-card span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}

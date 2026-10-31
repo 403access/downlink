@@ -1,0 +1,205 @@
+/* base.css — part of the Downlink stylesheet. */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0d0e;
+  --bg-deep: #070909;
+  --sidebar: rgba(13, 17, 18, 0.86);
+  --panel: #111617;
+  --panel-2: #151b1c;
+  --panel-3: #1a2122;
+  --panel-hover: #1d2526;
+  --text: #edf4f0;
+  --text-soft: #c5d0cb;
+  --muted: #8d9a96;
+  --dim: #64716d;
+  --faint: #43504c;
+  --line: rgba(255, 255, 255, 0.075);
+  --line-strong: rgba(255, 255, 255, 0.13);
+  --lime: #b6f36b;
+  --lime-soft: rgba(182, 243, 107, 0.12);
+  --lime-glow: rgba(182, 243, 107, 0.24);
+  --lime-ink: #10160d;
+  --cyan: #5eead4;
+  --cyan-soft: rgba(94, 234, 212, 0.12);
+  --amber: #ffc857;
+  --amber-soft: rgba(255, 200, 87, 0.12);
+  --rose: #ff8b9a;
+  --rose-soft: rgba(255, 139, 154, 0.12);
+  --red: #ff6b6b;
+  --red-soft: rgba(255, 107, 107, 0.1);
+  --blue: #82c8ff;
+  --shadow: 0 22px 80px rgba(0, 0, 0, 0.42);
+  --shadow-soft: 0 12px 36px rgba(0, 0, 0, 0.2);
+  --thumb-video: #1c3327;
+  --thumb-audio: #24213a;
+  --thumb-image: #352b1b;
+  --thumb-archive: #1c2a38;
+  --thumb-document: #24292a;
+  --thumb-other: #202627;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5ee;
+  --bg-deep: #eaeee2;
+  --sidebar: rgba(249, 250, 244, 0.9);
+  --panel: #ffffff;
+  --panel-2: #f8faf4;
+  --panel-3: #f0f4e9;
+  --panel-hover: #f2f6ea;
+  --text: #141914;
+  --text-soft: #374139;
+  --muted: #68736c;
+  --dim: #7e8982;
+  --faint: #a5aea8;
+  --line: rgba(17, 30, 20, 0.09);
+  --line-strong: rgba(17, 30, 20, 0.16);
+  --lime: #5eae2c;
+  --lime-soft: rgba(94, 174, 44, 0.1);
+  --lime-glow: rgba(94, 174, 44, 0.18);
+  --lime-ink: #0d1608;
+  --cyan: #0f9e8a;
+  --cyan-soft: rgba(15, 158, 138, 0.1);
+  --amber: #c68400;
+  --amber-soft: rgba(198, 132, 0, 0.1);
+  --rose: #d34f68;
+  --rose-soft: rgba(211, 79, 104, 0.1);
+  --red: #dc4545;
+  --red-soft: rgba(220, 69, 69, 0.08);
+  --blue: #1677be;
+  --shadow: 0 24px 80px rgba(31, 48, 33, 0.16);
+  --shadow-soft: 0 12px 36px rgba(31, 48, 33, 0.08);
+  --thumb-video: #d9eed8;
+  --thumb-audio: #e4dcf7;
+  --thumb-image: #f4e6c7;
+  --thumb-archive: #d8e6f2;
+  --thumb-document: #e5e9e4;
+  --thumb-other: #e5e9e4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 9% 0%, var(--lime-soft), transparent 30rem),
+    radial-gradient(circle at 98% 6%, rgba(94, 234, 212, 0.05), transparent 28rem),
+    var(--bg);
+  color: var(--text);
+  font-family: "Avenir Next", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.3;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to bottom, black, transparent 70%);
+}
+
+:root[data-theme="light"] body::before {
+  opacity: 0.55;
+  background-image: linear-gradient(rgba(20, 40, 24, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 40, 24, 0.028) 1px, transparent 1px);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--faint);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dim);
+  background-clip: padding-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon.big {
+  width: 38px;
+  height: 38px;
+  stroke-width: 1.4;
+}
+
+kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel-2);
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+}

@@ -1,0 +1,611 @@
+/* cards.css — part of the Downlink stylesheet. */
+
+/* Download cards ---------------------------------------------------------- */
+
+.download-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  animation: card-in 340ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+
+.download-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-2px);
+}
+
+.download-card.is-error {
+  border-color: rgba(255, 107, 107, 0.22);
+}
+
+.download-card.is-downloading {
+  border-color: color-mix(in srgb, var(--lime) 22%, var(--line));
+}
+
+.download-card.is-new {
+  animation: card-new 700ms ease both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.99);
+  }
+}
+
+@keyframes card-new {
+  0% {
+    box-shadow: 0 0 0 1px var(--lime), 0 0 44px var(--lime-glow);
+  }
+}
+
+.card-hit-area {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.thumb {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(255, 255, 255, 0.13), transparent 38%),
+    linear-gradient(135deg, var(--thumb-bg-1, var(--thumb-video)), var(--thumb-bg-2, #111b15));
+}
+
+.download-card[data-kind="video"] .thumb {
+  --thumb-bg-1: var(--thumb-video);
+  --thumb-bg-2: #0d1812;
+}
+
+.download-card[data-kind="audio"] .thumb {
+  --thumb-bg-1: var(--thumb-audio);
+  --thumb-bg-2: #12101f;
+}
+
+.download-card[data-kind="image"] .thumb {
+  --thumb-bg-1: var(--thumb-image);
+  --thumb-bg-2: #171208;
+}
+
+.download-card[data-kind="archive"] .thumb {
+  --thumb-bg-1: var(--thumb-archive);
+  --thumb-bg-2: #0c131b;
+}
+
+.download-card[data-kind="document"] .thumb,
+.download-card[data-kind="other"] .thumb {
+  --thumb-bg-1: var(--thumb-document);
+  --thumb-bg-2: #111515;
+}
+
+:root[data-theme="light"] .download-card[data-kind="video"] .thumb {
+  --thumb-bg-2: #eef5e8;
+}
+
+:root[data-theme="light"] .download-card[data-kind="audio"] .thumb {
+  --thumb-bg-2: #f4effd;
+}
+
+:root[data-theme="light"] .download-card[data-kind="image"] .thumb {
+  --thumb-bg-2: #faf2df;
+}
+
+:root[data-theme="light"] .download-card[data-kind="archive"] .thumb {
+  --thumb-bg-2: #edf5fb;
+}
+
+:root[data-theme="light"] .download-card[data-kind="document"] .thumb,
+:root[data-theme="light"] .download-card[data-kind="other"] .thumb {
+  --thumb-bg-2: #f0f3ef;
+}
+
+.thumb::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  opacity: 0.34;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 0.7px, transparent 0.7px);
+  background-size: 13px 13px;
+  mask-image: linear-gradient(120deg, black, transparent 66%);
+}
+
+:root[data-theme="light"] .thumb::before {
+  opacity: 0.2;
+  background-image: radial-gradient(rgba(20, 60, 30, 0.35) 0.7px, transparent 0.7px);
+}
+
+.thumb::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(to top, rgba(5, 9, 7, 0.74), transparent 58%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.08), transparent 45%);
+}
+
+:root[data-theme="light"] .thumb::after {
+  background:
+    linear-gradient(to top, rgba(18, 30, 21, 0.33), transparent 52%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.22), transparent 45%);
+}
+
+.thumb-art {
+  position: absolute;
+  right: 6%;
+  bottom: -2%;
+  color: rgba(255, 255, 255, 0.18);
+  transform: rotate(-8deg);
+}
+
+:root[data-theme="light"] .thumb-art {
+  color: rgba(24, 44, 29, 0.13);
+}
+
+.thumb-art .icon {
+  width: 98px;
+  height: 98px;
+  stroke-width: 1.1;
+}
+
+.thumb-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.78;
+  transition: opacity 180ms ease, transform 500ms ease;
+}
+
+.download-card:hover .thumb-preview {
+  opacity: 0.95;
+  transform: scale(1.025);
+}
+
+.thumb-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(5, 9, 7, 0.6), transparent 50%);
+}
+
+.thumb-top {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.thumb-badges {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.partial-badge {
+  padding: 4px 7px;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+  border-radius: 999px;
+  background: rgba(7, 18, 16, 0.72);
+  color: #8ff5e4;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.status-badge {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 70%;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(7, 11, 9, 0.68);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme="light"] .status-badge {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(18, 31, 21, 0.64);
+}
+
+.status-badge .status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge.downloading {
+  color: #caff8f;
+}
+
+.status-badge.downloading .status-dot {
+  animation: pulse 1.4s infinite;
+}
+
+.status-badge.completed {
+  color: #e2ffc4;
+}
+
+.status-badge.paused {
+  color: #ffd166;
+}
+
+.status-badge.error {
+  border-color: rgba(255, 107, 107, 0.3);
+  background: rgba(55, 10, 12, 0.76);
+  color: #ffb4b4;
+}
+
+.status-badge.queued {
+  color: #9edcff;
+}
+
+.status-badge.canceled {
+  color: #c7d0cc;
+}
+
+.kind-badge {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(7, 11, 9, 0.6);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.kind-badge .icon {
+  width: 11px;
+  height: 11px;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.55;
+  }
+}
+
+.thumb-bottom {
+  position: absolute;
+  right: 12px;
+  bottom: 9px;
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.thumb-size {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.thumb-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.thumb-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--lime);
+  box-shadow: 0 0 12px var(--lime-glow);
+  transition: width 240ms ease;
+}
+
+.download-card[data-status="error"] .thumb-progress span {
+  background: var(--red);
+}
+
+.download-card[data-status="paused"] .thumb-progress span,
+.download-card[data-status="queued"] .thumb-progress span {
+  background: var(--amber);
+}
+
+.download-card.is-downloading .thumb::marker {
+  display: none;
+}
+
+.download-card.is-downloading .thumb-preview {
+  animation: preview-breathe 4s ease-in-out infinite;
+}
+
+@keyframes preview-breathe {
+  0%,
+  100% {
+    filter: saturate(0.9);
+  }
+  50% {
+    filter: saturate(1.15);
+  }
+}
+
+.card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 13px 14px 14px;
+}
+
+.card-title-row {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.file-type-icon {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: none;
+  place-items: center;
+  margin-top: 1px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.file-type-icon .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.download-card[data-kind="video"] .file-type-icon {
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.download-card[data-kind="audio"] .file-type-icon {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+}
+
+.download-card[data-kind="image"] .file-type-icon {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.download-card[data-kind="archive"] .file-type-icon {
+  background: rgba(130, 200, 255, 0.1);
+  color: var(--blue);
+}
+
+.file-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-name {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.file-meta {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  margin: 4px 0 0;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.file-host {
+  overflow: hidden;
+  max-width: 60%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-dot {
+  width: 2px;
+  height: 2px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.card-status-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-status-line strong {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-status-line span {
+  flex: none;
+  color: var(--dim);
+}
+
+.download-card[data-status="error"] .card-status-line strong {
+  color: var(--red);
+}
+
+.download-card[data-status="downloading"] .card-status-line strong {
+  color: var(--lime);
+}
+
+.download-card[data-status="paused"] .card-status-line strong {
+  color: var(--amber);
+}
+
+.card-progress {
+  overflow: hidden;
+  height: 3px;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: var(--panel-3);
+}
+
+.card-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lime);
+  box-shadow: 0 0 10px var(--lime-glow);
+  transition: width 240ms ease;
+}
+
+.download-card[data-status="error"] .card-progress span {
+  background: var(--red);
+}
+
+.download-card[data-status="paused"] .card-progress span,
+.download-card[data-status="queued"] .card-progress span {
+  background: var(--amber);
+}
+
+.download-card[data-status="completed"] .card-progress span {
+  background: var(--lime);
+}
+
+.card-error {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: var(--red);
+  font-size: 10.5px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-actions {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.card-action {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  height: 29px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.card-action:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-hover);
+  color: var(--text);
+}
+
+.card-action.primary {
+  border-color: transparent;
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.card-action.primary:hover {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+.card-action.icon-only {
+  width: 29px;
+  padding: 0;
+  margin-left: auto;
+}
+
+.card-action.icon-only + .card-action.icon-only {
+  margin-left: 0;
+}
+
+.card-action .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.card-action.danger:hover {
+  border-color: rgba(255, 107, 107, 0.3);
+  background: var(--red-soft);
+  color: var(--red);
+}

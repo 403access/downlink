@@ -44,7 +44,7 @@ The detail view includes a range-enabled player, resumable progress, metadata an
   keyboard shortcuts (`⌘K` search, `/` search, `n` new URL), dark/light theme, desktop
   notifications, toasts, and OS file-manager reveal.
 - **Responsive UI** with no client-side framework. The client is TypeScript bundled by
-  Bun's native HTML pipeline.
+  Bun's native HTML pipeline, split into feature modules so changes stay localized.
 - **Files stay local.** No telemetry, accounts, cloud service or external database.
 
 ## Requirements
@@ -185,20 +185,45 @@ Project layout:
 
 ```text
 src/
-  server.ts      Bun.serve routes, SSE, file responses, settings
-  engine.ts      download scheduler, resumable writer, speed meter, limiter
+  client.ts      browser entry (loads ./client/index)
+  client/        framework-free UI modules
+    index.ts       bindings, drag/drop, boot
+    cards.ts       library cards, filters, summaries, thumbnails
+    composer.ts    add form, 206 range mode, cURL apply, clipboard paste
+    detail.ts      detail dialog and media preview
+    inspect.ts     remote inspect dialog
+    curl-preview.ts live cURL preview + imported-header chips
+    actions.ts     pause/resume/retry/delete actions and confirm dialog
+    settings.ts    settings and queue actions
+    events.ts      SSE state updates
+    dom.ts         shared DOM references/state/toasts
+    format.ts      formatting helpers
+    types.ts       client-side types
+  server.ts      Bun.serve entry and route table
+  server/        API helpers split by responsibility
+    context.ts     store/engine/config bootstrapping
+    add.ts         URL/range/header add pipeline
+    files.ts       local file + Range responses
+    preview.ts     signed remote-preview token/proxy
+    sse.ts         event stream
+    http.ts        JSON/error helpers
+    snapshot.ts    API snapshot summary
+    fs-actions.ts  open/reveal in file manager
+  engine.ts      download scheduler and state
+  engine/        transfer and error helpers
   probe.ts       HEAD / one-byte Range probing and metadata
   curl.ts        pasted-cURL parser (URL, headers, Range, If-Range)
   headers.ts     request-header normalization and managed-header rules
   db.ts          bun:sqlite schema and persistence
   utils.ts       filename, MIME, range and URL helpers
   index.html     Bun-native fullstack entry
-  client.ts      framework-free UI
-  styles.css     responsive dark/light design
+  styles.css     CSS entry point (imports ./css/*)
+  css/           split styles by feature
 tests/
   utils.test.ts
   engine.test.ts
   probe.test.ts
+  curl.test.ts
 scripts/browser/
   cdp.ts         shared headless-Chrome / DevTools Protocol helpers
   pause.ts       isolated pause/resume E2E with Range + If-Range assertions

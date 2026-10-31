@@ -1,0 +1,177 @@
+/* loading.css — part of the Downlink stylesheet. */
+
+/* Empty and loading ------------------------------------------------------- */
+
+.empty-state {
+  display: flex;
+  min-height: 380px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 46px 24px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 0%, var(--lime-soft), transparent 24rem);
+  text-align: center;
+}
+
+.empty-art {
+  position: relative;
+  display: grid;
+  width: 154px;
+  height: 154px;
+  place-items: center;
+  margin-bottom: 21px;
+}
+
+.empty-ring {
+  position: absolute;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+.ring-one {
+  inset: 20px;
+  animation: orbit-spin 18s linear infinite;
+}
+
+.ring-two {
+  inset: 40px;
+  border-color: var(--line);
+  border-style: dashed;
+  animation: orbit-spin 13s linear infinite reverse;
+}
+
+.empty-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--lime) 30%, transparent);
+  border-radius: 16px;
+  background: var(--lime-soft);
+  color: var(--lime);
+  box-shadow: 0 0 46px var(--lime-glow);
+}
+
+.empty-icon .icon {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.1;
+}
+
+.orbit-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 10px var(--lime);
+}
+
+.dot-one {
+  top: 22px;
+  right: 37px;
+}
+
+.dot-two {
+  bottom: 28px;
+  left: 30px;
+  width: 3px;
+  height: 3px;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+}
+
+.empty-state p {
+  max-width: 390px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(294px, 1fr));
+  gap: 14px;
+}
+
+.skeleton-card {
+  padding: 0 0 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel-2);
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.045), transparent);
+  animation: shimmer 1.4s infinite;
+  transform: translateX(-100%);
+}
+
+.skeleton.thumb {
+  aspect-ratio: 16 / 9;
+}
+
+.skeleton-line {
+  height: 9px;
+  margin: 13px 14px 0;
+  border-radius: 999px;
+}
+
+.skeleton-line.w70 {
+  width: 70%;
+}
+
+.skeleton-line.w60 {
+  width: 60%;
+}
+
+.skeleton-line.w45 {
+  width: 45%;
+  opacity: 0.6;
+}
+
+.skeleton-line.w40 {
+  width: 40%;
+  opacity: 0.6;
+}
+
+.skeleton-line.w75 {
+  width: 75%;
+}
+
+.skeleton-line.w50 {
+  width: 50%;
+  opacity: 0.6;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
